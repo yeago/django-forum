@@ -11,7 +11,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
     list_display = ['author','thread']
 
 class ThreadAdmin(admin.ModelAdmin):
-    list_display = ('title', 'forum', 'latest_post_time')
+    list_display = ('title', 'forum', 'latest_post')
     list_filter = ('forum',)
 
 admin.site.register(Forum, ForumAdmin)

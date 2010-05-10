@@ -43,7 +43,7 @@ def forum(request, slug):
     form = CreateThreadForm()
     child_forums = f.child.for_groups(request.user.groups.all())
 
-    recent_threads = f.thread_set.filter(posts__gt=1).select_related().order_by('-latest_post_time')[:10]
+    recent_threads = f.thread_set.filter(posts__gt=0).select_related().order_by('-latest_post__submit_date')[:10]
     active_threads = f.thread_set.select_related().order_by('-posts')[:10]
     return object_list( request,
                         queryset=f.thread_set.select_related().all(),
@@ -137,6 +137,8 @@ def newthread(request, forum):
 		site=Site.objects.get_current(),
             )
             p.save()
+	    t.latest_post = p
+	    t.save()
    
             """
 	    undecided

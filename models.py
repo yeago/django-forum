@@ -14,6 +14,20 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.html import escape
 from django.contrib import comments
 from django.contrib.contenttypes.models import ContentType
+
+from django.contrib.comments.signals import comment_was_posted
+
+Comment = comments.get_model()
+def update_thread(sender, request, **kwargs):
+	instance = kwargs.get('comment')
+	if instance.content_object.__class__ == Thread:
+		x = instance.content_object
+		x.latest_post = instance
+		x.posts += 1
+		x.save()
+
+comment_was_posted.connect(update_thread,sender=Comment)
+
 try:
     from markdown import markdown
 except ImportError:
@@ -170,23 +184,10 @@ class Thread(models.Model):
     closed = models.BooleanField(_("Closed?"), blank=True, default=False)
     posts = models.IntegerField(_("Posts"), default=0)
     views = models.IntegerField(_("Views"), default=0)
-    latest_post_time = models.DateTimeField(_("Latest Post Time"), blank=True, null=True)
-
-    def _get_thread_latest_post(self):
-        """This gets the latest post for the thread"""
-        if not hasattr(self, '__thread_latest_post'):
-            Post = comments.get_model()
-            ct = ContentType.objects.get_for_model(Thread)
-            try:
-                self.__thread_latest_post = Post.objects.filter(content_type=ct,object_pk=self.id).latest("submit_date")
-            except Post.DoesNotExist:
-                self.__thread_latest_post = None
-
-        return self.__thread_latest_post
-    thread_latest_post = property(_get_thread_latest_post)
+    latest_post = models.ForeignKey('comments.Comment',editable=False,null=True,blank=True)
 
     class Meta:
-        ordering = ('-sticky', '-latest_post_time')
+        ordering = ('-sticky', '-latest_post__submit_date')
         verbose_name = _('Thread')
         verbose_name_plural = _('Threads')
 
