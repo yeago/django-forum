@@ -1,7 +1,7 @@
 {% extends "forum_base.html" %}
 {% load i18n %}
 
-{% block title %}{{ forum.title }}{% endblock %}
+{% block title %}{{ block.super }} / {{ forum.title }}{% endblock %}
 
 {% block extrahead %}
 <link rel="alternate" type="application/rss+xml" title="{% blocktrans with forum.title as ftitle %}{{ ftitle }} Posts via RSS{% endblocktrans %}" href="{% url forum_index %}rss/{{ forum.slug }}/" />
