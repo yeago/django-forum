@@ -86,7 +86,7 @@ class Forum(models.Model):
     def get_absolute_url(self):
         p_list = self._recurse_for_parents_slug(self)
         p_list.append(self.slug)
-        return '%s%s/' % (reverse('forum_index'), '/'.join (p_list))
+        return '%s%s/' % (reverse('forum_list'), '/'.join (p_list))
 
     def _recurse_for_parents_name(self, forum_obj):
         #This is used for the visual display & save validation

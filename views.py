@@ -36,12 +36,12 @@ def forum(request, slug):
     most recent post.
     """
     try:
-        f = Forum.objects.for_groups(request.user.groups.all()).select_related().get(slug=slug)
+        f = Forum.objects.for_user(request.user).select_related().get(slug=slug)
     except Forum.DoesNotExist:
         raise Http404
 
     form = CreateThreadForm()
-    child_forums = f.child.for_groups(request.user.groups.all())
+    #child_forums = f.child.for_groups(request.user.groups.all())
 
     recent_threads = f.thread_set.filter(posts__gt=0).select_related().order_by('-latest_post__submit_date')[:10]
     active_threads = f.thread_set.select_related().order_by('-posts')[:10]
@@ -52,7 +52,7 @@ def forum(request, slug):
                         template_name='forum/thread_list.html',
                         extra_context = {
                             'forum': f,
-                            'child_forums': child_forums,
+			    #'child_forums': child_forums,
 			    'active_threads': active_threads,
 			    'recent_threads': recent_threads,
                             'form': form,
@@ -65,7 +65,7 @@ def thread(request, forum, thread):
     """
     try:
         t = Thread.objects.select_related().get(slug=thread)
-        if not Forum.objects.has_access(t.forum, request.user.groups.all()):
+        if not Forum.objects.has_access(t.forum, request.user):
             raise Http404
     except Thread.DoesNotExist:
         raise Http404
@@ -114,7 +114,7 @@ def newthread(request, forum):
 
     f = get_object_or_404(Forum, slug=forum)
     
-    if not Forum.objects.has_access(f, request.user.groups.all()):
+    if not Forum.objects.has_access(f, request.user):
         return HttpResponseForbidden()
 
     if request.method == 'POST':
