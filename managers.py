@@ -2,6 +2,13 @@ from django.db import models
 from django.db.models import Q
 
 class ForumManager(models.Manager):
+    def for_user(self, u):
+        if u:
+            public = Q(allowed_users__isnull=True)
+            user = Q(allowed_users=u)
+            return self.filter(public|user).distinct()
+        return self.filter(allowed_users__isnull=True)
+
     def for_groups(self, groups):
         if groups:
             public = Q(groups__isnull=True)

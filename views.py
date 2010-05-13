@@ -25,7 +25,7 @@ FORUM_PAGINATION = getattr(settings, 'FORUM_PAGINATION', 20)
 LOGIN_URL = getattr(settings, 'LOGIN_URL', '/accounts/login/')
 
 def forums_list(request):
-    queryset = Forum.objects.for_groups(request.user.groups.all()).filter(parent__isnull=True)
+    queryset = Forum.objects.for_user(request.user).filter(parent__isnull=True)
     return object_list( request,
                         queryset=queryset)
 

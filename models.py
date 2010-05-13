@@ -47,7 +47,7 @@ class Forum(models.Model):
     All of the parent/child recursion code here is borrowed directly from
     the Satchmo project: http://www.satchmoproject.com/
     """
-    groups = models.ManyToManyField(Group, blank=True)
+    allowed_users = models.ManyToManyField('auth.User',blank=True,related_name="allowed_forums",help_text="Ignore if non-restricted")
     title = models.CharField(_("Title"), max_length=100)
     slug = models.SlugField(_("Slug"))
     parent = models.ForeignKey('self', blank=True, null=True, related_name='child')
