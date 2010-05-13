@@ -3,7 +3,7 @@ All forum logic is kept here - displaying lists of forums, threads
 and posts, adding new threads, and adding replies.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.shortcuts import get_object_or_404, render_to_response
 from django.http import Http404, HttpResponse, HttpResponseRedirect, HttpResponseServerError, HttpResponseForbidden, HttpResponseNotAllowed
 from django.template import RequestContext, Context, loader
@@ -44,9 +44,11 @@ def forum(request, slug):
     #child_forums = f.child.for_groups(request.user.groups.all())
 
     recent_threads = f.thread_set.filter(posts__gt=0).select_related().order_by('-latest_post__submit_date')[:10]
-    active_threads = f.thread_set.select_related().order_by('-posts')[:10]
+    active_threads = f.thread_set.select_related().filter(latest_post__submit_date__gt=\
+		    datetime.now() - timedelta(hours=36)).order_by('-posts')[:10]
+
     return object_list( request,
-                        queryset=f.thread_set.select_related().all(),
+                        queryset=f.thread_set.select_related().order_by('-id'),
                         paginate_by=FORUM_PAGINATION,
                         template_object_name='thread',
                         template_name='forum/thread_list.html',
