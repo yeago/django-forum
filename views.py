@@ -43,12 +43,12 @@ def forum(request, slug):
     form = CreateThreadForm()
     #child_forums = f.child.for_groups(request.user.groups.all())
 
-    recent_threads = f.thread_set.filter(posts__gt=0).select_related().order_by('-latest_post__submit_date')[:10]
+    recent_threads = f.thread_set.filter(posts__gt=0).select_related().order_by('-id')[:10]
     active_threads = f.thread_set.select_related().filter(latest_post__submit_date__gt=\
 		    datetime.now() - timedelta(hours=36)).order_by('-posts')[:10]
 
     return object_list( request,
-                        queryset=f.thread_set.select_related().order_by('-id'),
+                        queryset=f.thread_set.select_related().order_by('-latest_post__submit_date'),
                         paginate_by=FORUM_PAGINATION,
                         template_object_name='thread',
                         template_name='forum/thread_list.html',
