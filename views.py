@@ -99,6 +99,7 @@ def thread(request, forum, thread):
                         extra_context = {
                             'forum': t.forum,
                             'thread': t,
+                            'object': t,
                             'subscription': s,
                             'form': form,
                         })
