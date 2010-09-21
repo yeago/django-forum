@@ -10,6 +10,7 @@ class ForumAdmin(admin.ModelAdmin):
     formfield_overrides = {
 		    models.ManyToManyField: {'widget': FilteredSelectMultiple("allowed users",is_stacked=False) },
     }
+    raw_id_fields = ['allowed_users']
 
 class ThreadAdmin(admin.ModelAdmin):
     list_display = ('title', 'forum', 'latest_post')

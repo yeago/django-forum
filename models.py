@@ -26,6 +26,9 @@ def update_thread(sender, request, **kwargs):
 		x.posts += 1
 		x.save()
 
+		x.thread.posts += 1
+		x.thread.save()
+
 comment_was_posted.connect(update_thread,sender=Comment)
 
 try:
