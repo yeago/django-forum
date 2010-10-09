@@ -73,7 +73,8 @@ def thread(request, forum, thread):
         raise Http404
 
     Post = comments.get_model()
-    p = Post.objects.select_related('author').filter(content_type=ContentType.objects.get_for_model(Thread),object_pk=t.pk).order_by('submit_date')
+    p = Post.objects.exclude(pk=t.comment_id).filter(content_type=\
+        ContentType.objects.get_for_model(Thread),object_pk=t.pk).order_by('submit_date')
     s = None
     """
     not sure
@@ -90,7 +91,7 @@ def thread(request, forum, thread):
         initial = {'subscribe': False}
 
     form = ReplyForm(initial=initial)
-    
+
     return object_list( request,
                         queryset=p,
                         paginate_by=FORUM_PAGINATION,
@@ -141,6 +142,7 @@ def newthread(request, forum):
             )
             p.save()
 	    t.latest_post = p
+	    t.comment = p
 	    t.save()
    
             """
