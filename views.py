@@ -48,7 +48,7 @@ def forum(request, slug):
 		    datetime.now() - timedelta(hours=36)).order_by('-posts')[:10]
 
     return object_list( request,
-                        queryset=f.thread_set.select_related('latest_post__user__userprofile','forum').order_by('-latest_post__submit_date'),
+                        queryset=f.thread_set.select_related('forum').order_by('-latest_post__submit_date'),
                         paginate_by=FORUM_PAGINATION,
                         template_object_name='thread',
                         template_name='forum/thread_list.html',
