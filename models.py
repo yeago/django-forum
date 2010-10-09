@@ -187,6 +187,7 @@ class Thread(models.Model):
     closed = models.BooleanField(_("Closed?"), blank=True, default=False)
     posts = models.IntegerField(_("Posts"), default=0)
     views = models.IntegerField(_("Views"), default=0)
+    comment = models.ForeignKey('comments.Comment',null=True,blank=True,related_name="commentthread_set") # Two way link
     latest_post = models.ForeignKey('comments.Comment',editable=False,null=True,blank=True)
 
     class Meta:
@@ -194,7 +195,7 @@ class Thread(models.Model):
         verbose_name = _('Thread')
         verbose_name_plural = _('Threads')
 
-    def save(self, force_insert=False, force_update=False):
+    def save(self, *args,**kwargs):
 	from slugify import SlugifyUniquely, slugify
 	if not self.slug:
 		self.slug = SlugifyUniquely(self.title, Thread)
@@ -204,7 +205,7 @@ class Thread(models.Model):
         f.save()
         if not self.sticky:
             self.sticky = False
-        super(Thread, self).save(force_insert, force_update)
+        super(Thread, self).save(*args,**kwargs)
 
     def delete(self):
         super(Thread, self).delete()
