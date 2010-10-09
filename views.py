@@ -94,6 +94,7 @@ def thread(request, forum, thread):
 
     return object_list( request,
                         queryset=p,
+			page=request.GET.get('p',None) or None,
                         paginate_by=FORUM_PAGINATION,
                         template_object_name='post',
                         template_name='forum/thread.html',
