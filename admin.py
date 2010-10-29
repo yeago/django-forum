@@ -29,6 +29,7 @@ class ForumAdmin(admin.ModelAdmin):
     list_display = ('title', '_parents_repr')
     ordering = ['ordering', 'parent', 'title']
     prepopulated_fields = {"slug": ("title",)}
+    raw_id_fields = ['allowed_users']
     formfield_overrides = {
         models.ManyToManyField: {'widget': FilteredSelectMultiple("allowed users",is_stacked=False) },
     }
