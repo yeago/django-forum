@@ -221,4 +221,4 @@ class Thread(models.Model):
 #get_absolute_url = models.permalink(get_absolute_url)
     
     def __unicode__(self):
-        return u'%s' % self.title
+        return self.title.replace('[[','').replace(']]','')

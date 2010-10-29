@@ -36,7 +36,7 @@ class ForumAdmin(admin.ModelAdmin):
     #raw_id_fields = ['allowed_users']
 
 class ThreadAdmin(admin.ModelAdmin):
-    list_display = ('title', 'forum', 'latest_post')
+    list_display = ('title', 'forum', 'latest_post','comment')
     raw_id_fields = ('comment',)
     list_filter = ('forum',)
 
