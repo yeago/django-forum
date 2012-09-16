@@ -26,10 +26,12 @@ urlpatterns = patterns('',
     (r'^(?P<url>(atom).*)/$', AtomForumFeed()),
     url(r'^(?P<slug>[-\w]+)/$', 'forum.views.forum', name='forum_thread_list'),
     url(r'^(?P<forum>[-\w]+)/new/$', 'forum.views.newthread', name='forum_new_thread'),
+    url(r'^(?P<forum>[-\w]+)/preview/$', 'forum.views.previewthread', name='forum_preview_thread'),
 
     url(r'^(?P<forum>[-\w]+)/(?P<thread>[-\w]+)/$', 'forum.views.thread', name='forum_view_thread'),
 
     url(r'^([-\w/]+/)(?P<forum>[-\w]+)/new/$', 'forum.views.newthread'),
+    url(r'^([-\w/]+/)(?P<forum>[-\w]+)/preview/$', 'forum.views.previewthread'),
     url(r'^([-\w/]+/)(?P<slug>[-\w]+)/$', 'forum.views.forum', name='forum_subforum_thread_list'),
 
     (r'^sitemap.xml$', 'django.contrib.sitemaps.views.index', {'sitemaps': sitemap_dict}),
