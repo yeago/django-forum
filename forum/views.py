@@ -45,7 +45,7 @@ def forum(request, slug):
 
     recent_threads = f.thread_set.filter(posts__gt=0).select_related().order_by('-id')[:10]
     active_threads = f.thread_set.select_related().filter(latest_post__submit_date__gt=\
-		    datetime.now() - timedelta(hours=36)).order_by('-posts')[:10]
+            datetime.now() - timedelta(hours=36)).order_by('-posts')[:10]
 
     return object_list( request,
                         queryset=f.thread_set.select_related('forum').order_by('-latest_post__submit_date'),
@@ -54,9 +54,9 @@ def forum(request, slug):
                         template_name='forum/thread_list.html',
                         extra_context = {
                             'forum': f,
-			    #'child_forums': child_forums,
-			    'active_threads': active_threads,
-			    'recent_threads': recent_threads,
+                #'child_forums': child_forums,
+                'active_threads': active_threads,
+                'recent_threads': recent_threads,
                             'form': form,
                         })
 
@@ -94,7 +94,7 @@ def thread(request, forum, thread):
 
     return object_list( request,
                         queryset=p,
-			page=request.GET.get('p',None) or None,
+                        page=request.GET.get('p',None) or None,
                         paginate_by=FORUM_PAGINATION,
                         template_object_name='post',
                         template_name='forum/thread.html',
@@ -105,6 +105,70 @@ def thread(request, forum, thread):
                             'subscription': s,
                             'form': form,
                         })
+
+def previewthread(request, forum):
+    """
+    Renders a preview of the new post and gives the user
+    the option to modify it before posting. If called without
+    a POST, redirects to newthread.
+
+    Only allows a user to post if they're logged in.
+    """
+    if not request.user.is_authenticated():
+        return HttpResponseRedirect('%s?next=%s' % (LOGIN_URL, request.path))
+
+    f = get_object_or_404(Forum, slug=forum)
+
+    if not Forum.objects.has_access(f, request.user):
+        return HttpResponseForbidden()
+
+    if request.method == "POST":
+        form = CreateThreadForm(request.POST)
+        if form.is_valid():
+            t = Thread(
+                forum=f,
+                title=form.cleaned_data['title'],
+            )
+            Post = comments.get_model()
+            ct = ContentType.objects.get_for_model(Thread)
+
+            # If previewing, render preview and form.
+            if "preview" in request.POST:
+                return render_to_response('forum/previewthread.html',
+                    RequestContext(request, {
+                        'form': form,
+                        'forum': f,
+                        'thread': t,
+                        'comment': form.cleaned_data['body'],
+                        'user': request.user,
+                    }))
+
+            # No preview means we're ready to save the post.
+            else:
+                t.save()
+                p = Post(
+                    content_type=ct,
+                    object_pk=t.pk,
+                    user=request.user,
+                    comment=form.cleaned_data['body'],
+                    submit_date=datetime.now(),
+                    site=Site.objects.get_current(),
+                )
+                p.save()
+                t.latest_post = p
+                t.comment = p
+                t.save()
+
+                return HttpResponseRedirect(t.get_absolute_url())
+
+    else:
+        form = CreateThreadForm()
+
+    return render_to_response('forum/newthread.html',
+        RequestContext(request, {
+            'form': form,
+            'forum': f, 
+        }))
 
 def newthread(request, forum):
     """
@@ -124,6 +188,8 @@ def newthread(request, forum):
 
     if request.method == 'POST':
         form = CreateThreadForm(request.POST)
+        """
+        #shouldn't be able to post without previewing first
         if form.is_valid():
             t = Thread(
                 forum=f,
@@ -135,27 +201,28 @@ def newthread(request, forum):
 
             p = Post(
                 content_type=ct,
-		object_pk=t.pk,
+                object_pk=t.pk,
                 user=request.user,
                 comment=form.cleaned_data['body'],
                 submit_date=datetime.now(),
-		site=Site.objects.get_current(),
+                site=Site.objects.get_current(),
             )
             p.save()
-	    t.latest_post = p
-	    t.comment = p
-	    t.save()
+            t.latest_post = p
+            t.comment = p
+            t.save()
    
-            """
-	    undecided
+            " " "
+            undecided
             if form.cleaned_data.get('subscribe', False):
                 s = Subscription(
                     author=request.user,
                     thread=t
                     )
                 s.save()
-            """
+            " " "
             return HttpResponseRedirect(t.get_absolute_url())
+        """
     else:
         form = CreateThreadForm()
 
