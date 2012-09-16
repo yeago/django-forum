@@ -1,0 +1,29 @@
+{% extends base_template %}
+{% load comments_plus_tags tapped_tags %}
+{% load wiki_tags i18n tapped_tags markup %}
+{% block body %}
+<div class="span12">
+    {% include "_form_errors.html" %}
+    <h1>{% trans "Thread preview" %}</h1>
+    <div class="hero-unit">
+        <h1>{% wikify thread.title %}</h1>
+        <h3><a class="badge" href="{{ thread.forum.get_absolute_url }}">{{ thread.forum }} forum</a></h3>
+        <h3> {% display_username user.id %}</h3>
+        {% wikify comment %}
+    </div>
+    <form action="./" method="post">{% csrf_token %}
+        {% for field in form %}
+            {% if field.is_hidden %}
+                {{ field }}
+            {% else %}
+                {% if field.errors %} {{ field.errors }} {% endif %}
+                <p{% if field.errors %} class="error"{% endif %}{% ifequal field.name "honeypot" %} style="display:none;"{% endifequal %}>
+                    {{ field }}
+                </p>
+            {% endif %}
+        {% endfor %}
+        <input type="submit" name="submit" class="btn" value="{% trans "Post" %}" />
+        <input type="submit" name="preview" class="btn" value="{% trans "Preview" %}" />
+    </form>
+</div>
+{% endblock %}

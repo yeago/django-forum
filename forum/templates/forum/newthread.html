@@ -16,11 +16,10 @@
 {% block content %}
 
 <h2>{% trans "Create a Thread" %}</h2>
-<form method='post' action='./'>{% csrf_token %}
-{% if form.errors %}<ul>{{ form.errors.as_ul }}</ul>{% endif %}
+<form method='post' action='../preview/'>{% csrf_token %}
 <p><label>{% trans "Posting As" %}</label><span>{{ user.username }}</span></p>
-{{ form.as_p }}
-<p><input type='submit' value='{% trans "Post" %}' /></p>
+<ul>{{ form.as_ul }}</ul>
+<p><input type='submit' name='preview' value='{% trans "Preview your post!" %}' /></p>
 </form>
 
 {% endblock %}
