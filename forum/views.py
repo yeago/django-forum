@@ -20,6 +20,7 @@ from django.views.generic.list_detail import object_list
 
 from forum.models import Forum,Thread
 from forum.forms import CreateThreadForm, ReplyForm
+from forum.signals import thread_created
 
 FORUM_PAGINATION = getattr(settings, 'FORUM_PAGINATION', 20)
 LOGIN_URL = getattr(settings, 'LOGIN_URL', '/accounts/login/')
@@ -158,6 +159,8 @@ def previewthread(request, forum):
                 t.latest_post = p
                 t.comment = p
                 t.save()
+
+                thread_created.send(sender=Thread, instance=t, author=request.user)
 
                 return HttpResponseRedirect(t.get_absolute_url())
 
