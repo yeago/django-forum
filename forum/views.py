@@ -83,8 +83,8 @@ def thread(request, forum, thread):
         s = t.subscription_set.select_related().filter(author=request.user)
     """
 
-    t.views += 1
-    t.save()
+    #t.views += 1
+    #t.save()
 
     if s:
         initial = {'subscribe': True}
