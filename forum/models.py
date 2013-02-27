@@ -191,7 +191,7 @@ class Thread(models.Model):
     latest_post = models.ForeignKey('comments.Comment',editable=False,null=True,blank=True)
 
     class Meta:
-        ordering = ('-sticky', '-latest_post__submit_date')
+        ordering = ('-latest_post__submit_date',)
         verbose_name = _('Thread')
         verbose_name_plural = _('Threads')
 
