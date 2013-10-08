@@ -5,107 +5,90 @@ and posts, adding new threads, and adding replies.
 
 from datetime import datetime, timedelta
 from django.shortcuts import get_object_or_404, render_to_response
-from django.http import Http404, HttpResponse, HttpResponseRedirect, HttpResponseServerError, HttpResponseForbidden, HttpResponseNotAllowed
-from django.template import RequestContext, Context, loader
-from django import forms
-from django.core.mail import EmailMessage
+from django.http import Http404, HttpResponseRedirect, HttpResponseForbidden
+from django.template import RequestContext
 from django.conf import settings
-from django.template.defaultfilters import striptags, wordwrap
+from django.views.generic.list import ListView
 from django.contrib.sites.models import Site
 from django.contrib import comments
 from django.contrib.contenttypes.models import ContentType
 from django.core.urlresolvers import reverse
-from django.utils.translation import ugettext as _
-from django.views.generic.list_detail import object_list
 
-from forum.models import Forum,Thread
+from forum.models import Forum, Thread
 from forum.forms import CreateThreadForm, ReplyForm
 from forum.signals import thread_created
+
 
 FORUM_PAGINATION = getattr(settings, 'FORUM_PAGINATION', 20)
 LOGIN_URL = getattr(settings, 'LOGIN_URL', '/accounts/login/')
 
-def forums_list(request):
-    queryset = Forum.objects.for_user(request.user).filter(parent__isnull=True)
-    return object_list( request,
-                        queryset=queryset)
 
-def forum(request, slug):
-    """
-    Displays a list of threads within a forum.
-    Threads are sorted by their sticky flag, followed by their 
-    most recent post.
-    """
-    try:
-        f = Forum.objects.for_user(request.user).select_related().get(slug=slug)
-    except Forum.DoesNotExist:
-        raise Http404
+class ForumList(ListView):
+    def get_queryset(self):
+        return Forum.objects.for_user(self.request.user).filter(parent__isnull=True)
 
-    form = CreateThreadForm()
-    #child_forums = f.child.for_groups(request.user.groups.all())
 
-    recent_threads = f.thread_set.filter(posts__gt=0).order_by('-id')[:10]
-    active_threads = f.thread_set.select_related('latest_post').filter(latest_post__submit_date__gt=\
-            datetime.now() - timedelta(hours=36)).order_by('-posts')[:10]
-
-    return object_list( request,
-                        queryset=f.thread_set.select_related('latest_post').order_by('-latest_post__submit_date'),
-                        paginate_by=FORUM_PAGINATION,
-                        template_object_name='thread',
-                        template_name='forum/thread_list.html',
-                        extra_context = {
-                            'forum': f,
-                #'child_forums': child_forums,
-                'active_threads': active_threads,
-                'recent_threads': recent_threads,
-                            'form': form,
-                        })
-
-def thread(request, forum, thread):
-    """
-    Increments the viewed count on a thread then displays the 
-    posts for that thread, in chronological order.
-    """
-    try:
-        t = Thread.objects.select_related().get(slug=thread)
-        if not Forum.objects.has_access(t.forum, request.user):
+class ThreadList(ListView):
+    template_object_name='thread',
+    template_name='forum/thread_list.html'
+    paginate_by = FORUM_PAGINATION
+    def get_queryset(self):
+        try:
+            self.f = Forum.objects.for_user(self.request.user).select_related().get(slug=self.kwargs.get('slug'))
+        except Forum.DoesNotExist:
             raise Http404
-    except Thread.DoesNotExist:
-        raise Http404
+        return self.f.thread_set.select_related('latest_post').order_by('-latest_post__submit_date')
 
-    Post = comments.get_model()
-    p = Post.objects.exclude(pk=t.comment_id).filter(content_type=\
-        ContentType.objects.get_for_model(Thread),object_pk=t.pk).order_by('submit_date')
-    s = None
-    """
-    not sure
-    if request.user.is_authenticated():
-        s = t.subscription_set.select_related().filter(author=request.user)
-    """
+    def get_context_data(self, **kwargs):
+        context = super(ThreadList, self).get_context_data(**kwargs)
 
-    #t.views += 1
-    #t.save()
+        form = CreateThreadForm()
+        #child_forums = f.child.for_groups(request.user.groups.all())
 
-    if s:
-        initial = {'subscribe': True}
-    else:
-        initial = {'subscribe': False}
+        recent_threads = self.f.thread_set.filter(posts__gt=0).order_by('-id')[:10]
+        active_threads = self.f.thread_set.select_related('latest_post').filter(latest_post__submit_date__gt=\
+                datetime.now() - timedelta(hours=36)).order_by('-posts')[:10]
 
-    form = ReplyForm(initial=initial)
+        context.update({
+            'forum': self.f,
+            'active_threads': active_threads,
+            'recent_threads': recent_threads,
+            'form': form,
+        })
+        return context
 
-    return object_list( request,
-                        queryset=p,
-                        page=request.GET.get('p',None) or None,
-                        paginate_by=FORUM_PAGINATION,
-                        template_object_name='post',
-                        template_name='forum/thread.html',
-                        extra_context = {
-                            'forum': t.forum,
-                            'thread': t,
-                            'object': t,
-                            'subscription': s,
-                            'form': form,
-                        })
+
+class PostList(ListView):
+    template_object_name='post'
+    template_name='forum/thread.html'
+    paginate_by=FORUM_PAGINATION
+    model = comments.get_model()
+    def get_queryset(self, **kwargs):
+        self.object = get_object_or_404(Thread, slug=self.kwargs.get('thread'))
+        if not Forum.objects.has_access(self.object.forum, self.request.user):
+            raise Http404
+        Post = comments.get_model()
+        return Post.objects.exclude(pk=self.object.comment_id).filter(content_type=\
+            ContentType.objects.get_for_model(Thread), object_pk=self.object.pk).order_by('submit_date')
+
+    def get_context_data(self, **kwargs):
+        context = super(PostList, self).get_context_data(**kwargs)
+        s = None
+
+        if s:
+            initial = {'subscribe': True}
+        else:
+            initial = {'subscribe': False}
+
+        form = ReplyForm(initial=initial)
+        context.update({
+            'thread': self.object,
+            'forum': self.object.forum,
+            'subscription': s,
+            'form': form,
+        })
+        return context
+
 
 def previewthread(request, forum):
     """
