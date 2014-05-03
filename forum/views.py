@@ -34,7 +34,7 @@ class ThreadList(ListView):
     paginate_by = FORUM_PAGINATION
     def get_queryset(self):
         try:
-            self.f = Forum.objects.for_user(self.request.user).select_related().get(slug=self.kwargs.get('slug'))
+            self.f = Forum.objects.for_user(self.request.user).select_related().get(slug=self.kwargs.get('slug'), site=settings.SITE_ID)
         except Forum.DoesNotExist:
             raise Http404
         return self.f.thread_set.select_related('latest_post').order_by('-latest_post__submit_date')
@@ -101,7 +101,7 @@ def previewthread(request, forum):
     if not request.user.is_authenticated():
         return HttpResponseRedirect('%s?next=%s' % (LOGIN_URL, request.path))
 
-    f = get_object_or_404(Forum, slug=forum)
+    f = get_object_or_404(Forum, slug=forum, site=settings.SITE_ID)
 
     if not Forum.objects.has_access(f, request.user):
         return HttpResponseForbidden()
@@ -167,7 +167,7 @@ def newthread(request, forum):
     if not request.user.is_authenticated():
         return HttpResponseRedirect('%s?next=%s' % (LOGIN_URL, request.path))
 
-    f = get_object_or_404(Forum, slug=forum)
+    f = get_object_or_404(Forum, slug=forum, site=settings.SITE_ID)
     
     if not Forum.objects.has_access(f, request.user):
         return HttpResponseForbidden()
