@@ -7,12 +7,12 @@ from datetime import datetime, timedelta
 from django.shortcuts import get_object_or_404, render_to_response
 from django.http import Http404, HttpResponseRedirect, HttpResponseForbidden
 from django.template import RequestContext
-from django.conf import settings
 from django.views.generic.list import ListView
 from django.contrib.sites.models import Site
 from django.contrib import comments
 from django.contrib.contenttypes.models import ContentType
 from django.core.urlresolvers import reverse
+from django.conf import settings
 
 from forum.models import Forum, Thread
 from forum.forms import CreateThreadForm, ReplyForm
@@ -25,7 +25,7 @@ LOGIN_URL = getattr(settings, 'LOGIN_URL', '/accounts/login/')
 
 class ForumList(ListView):
     def get_queryset(self):
-        return Forum.objects.for_user(self.request.user).filter(parent__isnull=True)
+        return Forum.objects.for_user(self.request.user).filter(parent__isnull=True, site=settings.SITE_ID)
 
 
 class ThreadList(ListView):
