@@ -6,28 +6,25 @@ methods. A little extra logic is in views.py.
 """
 
 from django.db import models
-import datetime
-from django.contrib.auth.models import User, Group
 from django.core.urlresolvers import reverse
-from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
-from django.utils.html import escape
 from django.contrib import comments
+from django.contrib.sites.models import Site
 from django.contrib.contenttypes.models import ContentType
 
 from django.contrib.comments.signals import comment_was_posted
 
 Comment = comments.get_model()
 def update_thread(sender, request, **kwargs):
-	instance = kwargs.get('comment')
-	if instance.content_object.__class__ == Thread:
-		x = instance.content_object
-		x.latest_post = instance
-		x.posts += 1
-		x.save()
+    instance = kwargs.get('comment')
+    if instance.content_object.__class__ == Thread:
+        x = instance.content_object
+        x.latest_post = instance
+        x.posts += 1
+        x.save()
 
-		x.forum.posts += 1
-		x.forum.save()
+        x.forum.posts += 1
+        x.forum.save()
 
 comment_was_posted.connect(update_thread,sender=Comment)
 
@@ -58,6 +55,7 @@ class Forum(models.Model):
     threads = models.IntegerField(_("Threads"), default=0, editable=False)
     posts = models.IntegerField(_("Posts"), default=0, editable=False)
     ordering = models.IntegerField(_("Ordering"), blank=True, null=True)
+    site = models.ForeignKey('sites.Site')
 
     objects = ForumManager()
 
@@ -65,12 +63,11 @@ class Forum(models.Model):
         """This gets the latest post for the forum"""
         if not hasattr(self, '__forum_latest_post'):
             Post = comments.get_model()
-	    ct = ContentType.objects.get_for_model(Forum)
-            try:
-                self.__forum_latest_post = Post.objects.filter(content_type=ct,object_pk=self.id).latest("submit_date")
-            except Post.DoesNotExist:
-                self.__forum_latest_post = None
-
+        ct = ContentType.objects.get_for_model(Forum)
+        try:
+            self.__forum_latest_post = Post.objects.filter(content_type=ct,object_pk=self.id).latest("submit_date")
+        except Post.DoesNotExist:
+            self.__forum_latest_post = None
         return self.__forum_latest_post
     forum_latest_post = property(_get_forum_latest_post)
 
@@ -143,6 +140,7 @@ class Forum(models.Model):
         verbose_name_plural = _('Forums')
 
     def save(self, force_insert=False, force_update=False):
+        self.site = Site.objects.get_current()
         p_list = self._recurse_for_parents_name(self)
         if (self.title) in p_list:
             raise validators.ValidationError(_("You must not save a forum in itself!"))
@@ -189,6 +187,7 @@ class Thread(models.Model):
     views = models.IntegerField(_("Views"), default=0)
     comment = models.ForeignKey('comments_app.TappedComment',null=True,blank=True,related_name="commentthread_set") # Two way link
     latest_post = models.ForeignKey('comments_app.TappedComment',editable=False,null=True,blank=True)
+    site = models.ForeignKey('sites.Site')
 
     class Meta:
         ordering = ('-latest_post__submit_date',)
@@ -196,13 +195,13 @@ class Thread(models.Model):
         verbose_name_plural = _('Threads')
 
     def save(self, *args,**kwargs):
-	from slugify import SlugifyUniquely, slugify
-	if not self.slug:
-		self.slug = SlugifyUniquely(self.title, Thread)
-
+        from slugify import SlugifyUniquely
+        if not self.slug:
+            self.slug = SlugifyUniquely(self.title, Thread)
         f = self.forum
         f.threads = f.thread_set.count()
         f.save()
+        self.site = Site.objects.get_current()
         if not self.sticky:
             self.sticky = False
         super(Thread, self).save(*args,**kwargs)
@@ -218,7 +217,6 @@ class Thread(models.Model):
     
     def get_absolute_url(self):
         return reverse('forum_view_thread', args=[self.forum.slug,self.slug])
-#get_absolute_url = models.permalink(get_absolute_url)
     
     def __unicode__(self):
         return self.title.replace('[[','').replace(']]','')
