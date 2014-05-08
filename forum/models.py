@@ -140,7 +140,7 @@ class Forum(models.Model):
         verbose_name_plural = _('Forums')
 
     def save(self, force_insert=False, force_update=False):
-        self.site = Site.objects.get_current()
+        self.site = self.site or Site.objects.get_current()
         p_list = self._recurse_for_parents_name(self)
         if (self.title) in p_list:
             raise validators.ValidationError(_("You must not save a forum in itself!"))
