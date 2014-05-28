@@ -219,4 +219,4 @@ class Thread(models.Model):
         return reverse('forum_view_thread', args=[self.forum.slug,self.slug])
     
     def __unicode__(self):
-        return self.title.replace('[[','').replace(']]','')
+        return u'%s'% self.title.replace('[[','').replace(']]','')
