@@ -141,7 +141,7 @@ def previewthread(request, forum):
                 t.latest_post = p
                 t.comment = p
                 t.save()
-                Thread.nonrel_objects.push_to_list('%s-latest-comments' % t.f.slug, t)
+                Thread.nonrel_objects.push_to_list('%s-latest-comments' % t.forum.slug, t)
 
                 thread_created.send(sender=Thread, instance=t, author=request.user)
 
