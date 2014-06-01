@@ -3,7 +3,7 @@ All forum logic is kept here - displaying lists of forums, threads
 and posts, adding new threads, and adding replies.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from django.shortcuts import get_object_or_404, render_to_response
 from django.http import Http404, HttpResponseRedirect, HttpResponseForbidden
 from django.template import RequestContext
@@ -11,7 +11,6 @@ from django.views.generic.list import ListView
 from django.contrib.sites.models import Site
 from django.contrib import comments
 from django.contrib.contenttypes.models import ContentType
-from django.core.urlresolvers import reverse
 from django.conf import settings
 
 from forum.models import Forum, Thread
@@ -34,10 +33,11 @@ class ThreadList(ListView):
     paginate_by = FORUM_PAGINATION
     def get_queryset(self):
         try:
-            self.f = Forum.objects.for_user(self.request.user).select_related().get(slug=self.kwargs.get('slug'), site=settings.SITE_ID)
+            self.f = Forum.objects.for_user(self.request.user
+                    ).select_related().get(slug=self.kwargs.get('slug'), site=settings.SITE_ID)
         except Forum.DoesNotExist:
             raise Http404
-        return self.f.thread_set.select_related('latest_post').order_by('-latest_post__submit_date')
+        return self.f.thread_set.all()
 
     def get_context_data(self, **kwargs):
         context = super(ThreadList, self).get_context_data(**kwargs)
@@ -45,9 +45,8 @@ class ThreadList(ListView):
         form = CreateThreadForm()
         #child_forums = f.child.for_groups(request.user.groups.all())
 
-        recent_threads = self.f.thread_set.filter(posts__gt=0).order_by('-id')[:10]
-        active_threads = self.f.thread_set.select_related('latest_post').filter(latest_post__submit_date__gt=\
-                datetime.now() - timedelta(hours=36)).order_by('-posts')[:10]
+        recent_threads = [i for i in self.get_queryset()[:30] if i.posts > 0][:10]
+        active_threads = Thread.nonrel_objects.get_list("%s-latest-threads" % self.f.slug, limit=10)
 
         context.update({
             'forum': self.f,
@@ -142,6 +141,7 @@ def previewthread(request, forum):
                 t.latest_post = p
                 t.comment = p
                 t.save()
+                Thread.nonrel_objects.push_to_list('%s-latest-comments' % t.f.slug, t)
 
                 thread_created.send(sender=Thread, instance=t, author=request.user)
 
@@ -217,27 +217,3 @@ def newthread(request, forum):
             'form': form,
             'forum': f,
         }))
-
-def updatesubs(request):
-    """
-    Allow users to update their subscriptions all in one shot.
-    """
-    if not request.user.is_authenticated():
-        return HttpResponseRedirect('%s?next=%s' % (LOGIN_URL, request.path))
-
-    subs = Subscription.objects.select_related().filter(author=request.user)
-
-    if request.POST:
-        # remove the subscriptions that haven't been checked.
-        post_keys = [k for k in request.POST.keys()]
-        for s in subs:
-            if not str(s.thread.id) in post_keys:
-                s.delete()
-        return HttpResponseRedirect(reverse('forum_subscriptions'))
-
-    return render_to_response('forum/updatesubs.html',
-        RequestContext(request, {
-            'subs': subs,
-            'next': request.GET.get('next')
-        }))
-       

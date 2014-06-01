@@ -1,0 +1,2 @@
+django-nonrel-enuff==0.3
+Django

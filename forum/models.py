@@ -14,6 +14,8 @@ from django.contrib.contenttypes.models import ContentType
 
 from django.contrib.comments.signals import comment_was_posted
 
+from enuff.managers import EnuffManager
+
 Comment = comments.get_model()
 def update_thread(sender, request, **kwargs):
     instance = kwargs.get('comment')
@@ -22,19 +24,11 @@ def update_thread(sender, request, **kwargs):
         x.latest_post = instance
         x.posts += 1
         x.save()
-
         x.forum.posts += 1
         x.forum.save()
+        Thread.nonrel_objects.push_to_list("%s-latest-threads" % x.forum.slug, x, trim=25)
 
 comment_was_posted.connect(update_thread,sender=Comment)
-
-try:
-    from markdown import markdown
-except ImportError:
-    class MarkdownNotFound(Exception):
-        def __str__(self):
-            return "Markdown is not installed!"
-    raise MarkdownNotFound
 
 from forum.managers import ForumManager
 
@@ -58,6 +52,9 @@ class Forum(models.Model):
     site = models.ForeignKey('sites.Site')
 
     objects = ForumManager()
+
+    def latest_threads(self, limit=10):
+        return Thread.nonrel_objects.get_list('%s-latest-threads' % self.slug, limit=limit)
 
     def _get_forum_latest_post(self):
         """This gets the latest post for the forum"""
@@ -189,8 +186,11 @@ class Thread(models.Model):
     latest_post = models.ForeignKey('comments_app.TappedComment',editable=False,null=True,blank=True)
     site = models.ForeignKey('sites.Site')
 
+    objects = models.Manager()
+    nonrel_objects = EnuffManager()
+
     class Meta:
-        ordering = ('-latest_post__submit_date',)
+        ordering = ('-id',)
         verbose_name = _('Thread')
         verbose_name_plural = _('Threads')
 
