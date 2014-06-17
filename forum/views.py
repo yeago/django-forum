@@ -194,7 +194,6 @@ def previewthread(request, forum):
 
                 thread_created.send(sender=Thread, instance=t, author=request.user)
                 if cache:
-                if cache:
                     cache.set(key,
                               (t.title, t.get_absolute_url(), get_forum_expire_datetime(forum)),
                               FORUM_FLOOD_CONTROL.get(forum, FORUM_POST_EXPIRE_IN))
