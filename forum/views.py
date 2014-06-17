@@ -3,15 +3,18 @@ All forum logic is kept here - displaying lists of forums, threads
 and posts, adding new threads, and adding replies.
 """
 
-from datetime import datetime
+import time
+from datetime import datetime, timedelta
+from django.utils.timesince import timeuntil
 from django.shortcuts import get_object_or_404, render_to_response
 from django.http import Http404, HttpResponseRedirect, HttpResponseForbidden
 from django.template import RequestContext
 from django.views.generic.list import ListView
 from django.contrib.sites.models import Site
-from django.contrib import comments
+from django.contrib import comments, messages
 from django.contrib.contenttypes.models import ContentType
 from django.conf import settings
+from django.core.cache import get_cache, InvalidCacheBackendError, ImproperlyConfigured
 
 from forum.models import Forum, Thread
 from forum.forms import CreateThreadForm, ReplyForm
@@ -20,6 +23,16 @@ from forum.signals import thread_created
 
 FORUM_PAGINATION = getattr(settings, 'FORUM_PAGINATION', 20)
 LOGIN_URL = getattr(settings, 'LOGIN_URL', '/accounts/login/')
+FORUM_FLOOD_CONTROL = getattr(settings, 'FORUM_FLOOD_CONTROL', {})
+FORUM_POST_EXPIRE_IN = getattr(settings, 'FORUM_POST_EXPIRE_IN', 0)
+
+
+def get_forum_cache():
+    try:
+        cache = get_cache('forum')
+    except (InvalidCacheBackendError, ImproperlyConfigured):
+        cache = None
+    return cache
 
 
 class ForumList(ListView):
@@ -41,18 +54,29 @@ class ThreadList(ListView):
 
     def get_context_data(self, **kwargs):
         context = super(ThreadList, self).get_context_data(**kwargs)
-
+        post_title, post_url, expire_date = '', '', None
         form = CreateThreadForm()
+
+        cache = get_forum_cache()
+        if self.request.user.is_authenticated() and cache:
+            user = self.request.user
+            key = make_cache_forum_key(user, self.f.slug, settings.SITE_ID)
+            if cache.get(key):
+                post_title, post_url, expire_date = cache.get(key)
+                expire_date = datetime.fromtimestamp(expire_date)
+                form = None
         #child_forums = f.child.for_groups(request.user.groups.all())
 
         recent_threads = [i for i in self.get_queryset()[:30] if i.posts > 0][:10]
         active_threads = Thread.nonrel_objects.get_list("%s-latest-threads" % self.f.slug, limit=10)
-
         context.update({
             'forum': self.f,
             'active_threads': active_threads,
             'recent_threads': recent_threads,
             'form': form,
+            'last_post_title': post_title,
+            'last_post_url': post_url,
+            'last_post_expiry': expire_date
         })
         return context
 
@@ -67,8 +91,9 @@ class PostList(ListView):
         if not Forum.objects.has_access(self.object.forum, self.request.user):
             raise Http404
         Post = comments.get_model()
-        return Post.objects.exclude(pk=self.object.comment_id).filter(content_type=\
-            ContentType.objects.get_for_model(Thread), object_pk=self.object.pk).order_by('submit_date')
+        return Post.objects.exclude(pk=self.object.comment_id).filter(
+            content_type=ContentType.objects.get_for_model(Thread),
+            object_pk=self.object.pk).order_by('submit_date')
 
     def get_context_data(self, **kwargs):
         context = super(PostList, self).get_context_data(**kwargs)
@@ -89,6 +114,18 @@ class PostList(ListView):
         return context
 
 
+def make_cache_forum_key(user, forum, key_prefix=''):
+    return ':'.join([str(key_prefix), str(forum), user.username])
+
+
+def get_forum_expire_datetime(forum, start=None):
+    if forum in FORUM_FLOOD_CONTROL:
+        expire_in = FORUM_FLOOD_CONTROL.get(forum, FORUM_POST_EXPIRE_IN)
+        start = start or datetime.now()
+        expire_datetime = start + timedelta(seconds=expire_in)
+        return time.mktime(expire_datetime.timetuple())
+
+
 def previewthread(request, forum):
     """
     Renders a preview of the new post and gives the user
@@ -106,6 +143,18 @@ def previewthread(request, forum):
         return HttpResponseForbidden()
 
     if request.method == "POST":
+        cache = get_forum_cache()
+        key = make_cache_forum_key(request.user, forum, settings.SITE_ID)
+
+        if cache and forum in FORUM_FLOOD_CONTROL:
+            if cache.get(key):
+                post_title, post_url, expiry = cache.get(key)
+                expiry = timeuntil(datetime.fromtimestamp(expiry))
+                messages.error(request, "You can't post a thread in the forum %s for %s." %
+                                        (f.title, expiry))
+
+                return HttpResponseRedirect(post_url)
+
         form = CreateThreadForm(request.POST)
         if form.is_valid():
             t = Thread(
@@ -144,6 +193,10 @@ def previewthread(request, forum):
                 Thread.nonrel_objects.push_to_list('%s-latest-comments' % t.forum.slug, t, trim=30)
 
                 thread_created.send(sender=Thread, instance=t, author=request.user)
+                if cache:
+                    cache.set(key,
+                              (t.title, t.get_absolute_url(), get_forum_expire_datetime(forum)),
+                              FORUM_FLOOD_CONTROL.get(forum, FORUM_POST_EXPIRE_IN))
 
                 return HttpResponseRedirect(t.get_absolute_url())
 
