@@ -53,7 +53,7 @@ class ThreadList(ListView):
 
     def get_context_data(self, **kwargs):
         context = super(ThreadList, self).get_context_data(**kwargs)
-        last_post, expire_date = '', None
+        post_title, post_url, expire_date = '', '', None
         form = CreateThreadForm()
 
         cache = get_forum_cache()
@@ -61,7 +61,7 @@ class ThreadList(ListView):
             user = self.request.user
             key = make_cache_forum_key(user, self.f.slug, settings.SITE_ID)
             if cache.get(key):
-                last_post, expire_date = cache.get(key)
+                post_title, post_url, expire_date = cache.get(key)
                 expire_date = timedelta(seconds=expire_date - time.mktime(datetime.now().timetuple()))
                 form = None
         #child_forums = f.child.for_groups(request.user.groups.all())
@@ -74,7 +74,8 @@ class ThreadList(ListView):
             'active_threads': active_threads,
             'recent_threads': recent_threads,
             'form': form,
-            'last_post_url': last_post,
+            'last_post_title': post_title,
+            'last_post_url': post_url,
             'last_post_expiry': str(expire_date)
         })
         return context
@@ -119,7 +120,7 @@ def make_cache_forum_key(user, forum, key_prefix=''):
 
 def get_forum_expire_datetime(forum, start=None):
     if forum in FORUM_FLOOD_CONTROL:
-        expire_in = FORUM_POST_EXPIRE_IN
+        expire_in = FORUM_FLOOD_CONTROL.get(forum, FORUM_POST_EXPIRE_IN)
         start = start or datetime.now()
         expire_datetime = start + timedelta(seconds=expire_in)
         return time.mktime(expire_datetime.timetuple())
@@ -148,12 +149,12 @@ def previewthread(request, forum):
         if cache and forum in FORUM_FLOOD_CONTROL:
 
             if cache.get(key):
-                last_post, expiry = cache.get(key)
+                post_title, post_url, expiry = cache.get(key)
                 expiry = timedelta(seconds=expiry - time.mktime(datetime.now().timetuple()))
                 messages.error(request, "You can't post a thread in the forum %s for %s." %
                                         (f.title, str(expiry)))
 
-                return HttpResponseRedirect(last_post)
+                return HttpResponseRedirect(post_url)
 
         form = CreateThreadForm(request.POST)
         if form.is_valid():
@@ -195,7 +196,9 @@ def previewthread(request, forum):
                 thread_created.send(sender=Thread, instance=t, author=request.user)
 
                 if cache:
-                    cache.set(key, (t.get_absolute_url(), get_forum_expire_datetime(forum)))
+                    cache.set(key,
+                              (t.title, t.get_absolute_url(), get_forum_expire_datetime(forum)),
+                              FORUM_FLOOD_CONTROL.get(forum, FORUM_POST_EXPIRE_IN))
 
                 return HttpResponseRedirect(t.get_absolute_url())
 
