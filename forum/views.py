@@ -5,6 +5,7 @@ and posts, adding new threads, and adding replies.
 
 import time
 from datetime import datetime, timedelta
+from django.utils.timesince import timeuntil
 from django.shortcuts import get_object_or_404, render_to_response
 from django.http import Http404, HttpResponseRedirect, HttpResponseForbidden
 from django.template import RequestContext
@@ -62,13 +63,12 @@ class ThreadList(ListView):
             key = make_cache_forum_key(user, self.f.slug, settings.SITE_ID)
             if cache.get(key):
                 post_title, post_url, expire_date = cache.get(key)
-                expire_date = timedelta(seconds=expire_date - time.mktime(datetime.now().timetuple()))
+                expire_date = datetime.fromtimestamp(expire_date)
                 form = None
         #child_forums = f.child.for_groups(request.user.groups.all())
 
         recent_threads = [i for i in self.get_queryset()[:30] if i.posts > 0][:10]
         active_threads = Thread.nonrel_objects.get_list("%s-latest-threads" % self.f.slug, limit=10)
-
         context.update({
             'forum': self.f,
             'active_threads': active_threads,
@@ -76,7 +76,7 @@ class ThreadList(ListView):
             'form': form,
             'last_post_title': post_title,
             'last_post_url': post_url,
-            'last_post_expiry': str(expire_date)
+            'last_post_expiry': expire_date
         })
         return context
 
@@ -147,12 +147,11 @@ def previewthread(request, forum):
         key = make_cache_forum_key(request.user, forum, settings.SITE_ID)
 
         if cache and forum in FORUM_FLOOD_CONTROL:
-
             if cache.get(key):
                 post_title, post_url, expiry = cache.get(key)
-                expiry = timedelta(seconds=expiry - time.mktime(datetime.now().timetuple()))
+                expiry = timeuntil(datetime.fromtimestamp(expiry))
                 messages.error(request, "You can't post a thread in the forum %s for %s." %
-                                        (f.title, str(expiry)))
+                                        (f.title, expiry))
 
                 return HttpResponseRedirect(post_url)
 
@@ -194,7 +193,7 @@ def previewthread(request, forum):
                 Thread.nonrel_objects.push_to_list('%s-latest-comments' % t.forum.slug, t, trim=30)
 
                 thread_created.send(sender=Thread, instance=t, author=request.user)
-
+                if cache:
                 if cache:
                     cache.set(key,
                               (t.title, t.get_absolute_url(), get_forum_expire_datetime(forum)),
