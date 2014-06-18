@@ -63,7 +63,10 @@ class ThreadList(ListView):
             key = make_cache_forum_key(user, self.f.slug, settings.SITE_ID)
             if cache.get(key):
                 post_title, post_url, expire_date = cache.get(key)
-                expire_date = datetime.fromtimestamp(expire_date)
+                try:
+                    expire_date = datetime.fromtimestamp(expire_date)
+                except TypeError:
+                    raise Exception("Found %s" % expire_date)
                 form = None
         #child_forums = f.child.for_groups(request.user.groups.all())
 
