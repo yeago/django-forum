@@ -61,8 +61,9 @@ class ThreadList(ListView):
         if self.request.user.is_authenticated() and cache:
             user = self.request.user
             key = make_cache_forum_key(user, self.f.slug, settings.SITE_ID)
-            if cache.get(key):
-                post_title, post_url, expire_date = cache.get(key)
+            from_cache = cache.get(key)
+            if from_cache:
+                post_title, post_url, expire_date = from_cache
                 try:
                     expire_date = datetime.fromtimestamp(expire_date)
                 except TypeError:
