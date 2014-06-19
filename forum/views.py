@@ -200,7 +200,7 @@ def previewthread(request, forum):
                 if cache:
                     cache.set(key,
                               (t.title, t.get_absolute_url(), get_forum_expire_datetime(forum)),
-                              )
+                              FORUM_FLOOD_CONTROL.get(forum, FORUM_POST_EXPIRE_IN))
 
                 return HttpResponseRedirect(t.get_absolute_url())
 
