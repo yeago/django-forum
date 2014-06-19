@@ -197,10 +197,11 @@ def previewthread(request, forum):
                 Thread.nonrel_objects.push_to_list('%s-latest-comments' % t.forum.slug, t, trim=30)
 
                 thread_created.send(sender=Thread, instance=t, author=request.user)
-                if cache:
+                expiry = FORUM_FLOOD_CONTROL.get(forum, FORUM_POST_EXPIRE_IN)
+                if cache and expiry:
                     cache.set(key,
                               (t.title, t.get_absolute_url(), get_forum_expire_datetime(forum)),
-                              )
+                              expiry)
 
                 return HttpResponseRedirect(t.get_absolute_url())
 
