@@ -64,10 +64,7 @@ class ThreadList(ListView):
             from_cache = cache.get(key)
             if from_cache:
                 post_title, post_url, expire_date = from_cache
-                try:
-                    expire_date = datetime.fromtimestamp(expire_date)
-                except TypeError:
-                    raise Exception("Found %s" % expire_date)
+                expire_date = datetime.fromtimestamp(expire_date)
                 form = None
         #child_forums = f.child.for_groups(request.user.groups.all())
 
@@ -197,7 +194,7 @@ def previewthread(request, forum):
                 Thread.nonrel_objects.push_to_list('%s-latest-comments' % t.forum.slug, t, trim=30)
 
                 thread_created.send(sender=Thread, instance=t, author=request.user)
-                if cache:
+                if cache and forum in FORUM_FLOOD_CONTROL:
                     cache.set(key,
                               (t.title, t.get_absolute_url(), get_forum_expire_datetime(forum)),
                               FORUM_FLOOD_CONTROL.get(forum, FORUM_POST_EXPIRE_IN))
