@@ -119,7 +119,7 @@ class PostList(ListView):
 
 
 def make_cache_forum_key(user, forum, key_prefix=''):
-    return ':'.join([str(key_prefix), str(forum), user.username])
+    return ':'.join([str(key_prefix), str(forum), user.username]).replace(' ','-')
 
 
 def get_forum_expire_datetime(forum, start=None):
