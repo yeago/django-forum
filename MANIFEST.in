@@ -1,1 +1,1 @@
-reverse-include forum/templates *
+recursive-include forum/templates *
