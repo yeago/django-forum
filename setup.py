@@ -3,11 +3,11 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='django-forum',
-    version="0.1",
+    name='django-shitty-forum',
+    version="0.2",
     author='Steve Yeago',
     author_email='subsume@gmail.com',
-    description='Forum in Django',
+    description='Forum in Django. Don\'t use it, it sucks.',
     url='http://github.com/subsume/django-forum',
     packages=find_packages(),
     include_package_data=True,
