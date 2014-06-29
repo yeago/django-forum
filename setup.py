@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='django-shitty-forum',
-    version="0.2",
+    version="0.3",
     author='Steve Yeago',
     author_email='subsume@gmail.com',
     description='Forum in Django. Don\'t use it, it sucks.',
