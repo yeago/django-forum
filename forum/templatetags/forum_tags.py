@@ -89,16 +89,14 @@ class ForumLatestUserPostsNode(Node):
 def can_post_in(user, forum):
     if forum.only_staff_posts:
         return user.is_authenticated and user.is_staff
-    else:
-        return user.is_authenticated and user.userprofile.comment_tutorial
+    return user.is_authenticated and user.userprofile.comment_tutorial
 
 
 @register.filter(name='can_read_in')
 def can_read_in(user, forum):
     if forum.only_staff_reads:
         return user.is_authenticated and user.is_staff
-    else:
-        return True
+    return True
 
 register.tag('forum_latest_posts', forum_latest_posts)
 register.tag('forum_latest_thread_activity', forum_latest_thread_activity)

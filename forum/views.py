@@ -133,9 +133,7 @@ def get_forum_expire_datetime(forum, start=None):
 def can_post(forum, user):
     if forum.only_staff_posts:
         return user.is_authenticated and user.is_staff
-    else:
-        return user.is_authenticated
-
+    return user.is_authenticated
 
 
 def previewthread(request, forum):
