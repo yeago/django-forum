@@ -130,6 +130,14 @@ def get_forum_expire_datetime(forum, start=None):
         return time.mktime(expire_datetime.timetuple())
 
 
+def can_post(forum, user):
+    if forum.only_staff_posts:
+        return user.is_authenticated and user.is_staff
+    else:
+        return user.is_authenticated
+
+
+
 def previewthread(request, forum):
     """
     Renders a preview of the new post and gives the user
@@ -147,6 +155,8 @@ def previewthread(request, forum):
         return HttpResponseForbidden()
 
     if request.method == "POST":
+        if not can_post(f, request.user):
+            return HttpResponseForbidden
         cache = get_forum_cache()
         key = make_cache_forum_key(request.user, forum, settings.SITE_ID)
 

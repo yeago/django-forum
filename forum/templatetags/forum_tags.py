@@ -1,8 +1,13 @@
-from forum.models import Thread, Post
+from django.contrib import comments
 from django.utils.translation import ugettext as _
 from django.template import Library, Node, TemplateSyntaxError, Variable, resolve_variable
 
+
+from forum.models import Thread
+
 register = Library()
+Post = comments.get_model()
+
 
 def forum_latest_thread_activity(parser, token):
     """
@@ -78,6 +83,22 @@ class ForumLatestUserPostsNode(Node):
         user = self.user.resolve(context)
         context[self.context_var] = Post.objects.select_related().filter(author=user).order_by('-time')[:self.number]
         return ''
+
+
+@register.filter(name='can_post_in')
+def can_post_in(user, forum):
+    if forum.only_staff_posts:
+        return user.is_authenticated and user.is_staff
+    else:
+        return user.is_authenticated and user.userprofile.comment_tutorial
+
+
+@register.filter(name='can_read_in')
+def can_read_in(user, forum):
+    if forum.only_staff_reads:
+        return user.is_authenticated and user.is_staff
+    else:
+        return True
 
 register.tag('forum_latest_posts', forum_latest_posts)
 register.tag('forum_latest_thread_activity', forum_latest_thread_activity)

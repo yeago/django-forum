@@ -1,14 +1,12 @@
 from django.db import models
 from django.db.models import Q
 
+
 class ForumManager(models.Manager):
-    def for_user(self, u):
-        return self.all()
-        if u and u.is_authenticated():
-            public = Q(allowed_users__isnull=True)
-            user = Q(allowed_users=u)
-            return self.filter(public|user).distinct()
-        return self.filter(allowed_users__isnull=True)
+    def for_user(self, user):
+        if user.is_staff:
+            return self.all()
+        return self.filter(only_staff_reads=False)
 
     def for_groups(self, groups):
         return self.all()
@@ -21,3 +19,4 @@ class ForumManager(models.Manager):
     def has_access(self, forum, user):
         return True
         return forum in self.for_user(user)
+

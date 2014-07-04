@@ -50,6 +50,8 @@ class Forum(models.Model):
     posts = models.IntegerField(_("Posts"), default=0, editable=False)
     ordering = models.IntegerField(_("Ordering"), blank=True, null=True)
     site = models.ForeignKey('sites.Site')
+    only_staff_posts = models.BooleanField(default=False)
+    only_staff_reads = models.BooleanField(default=False)
 
     objects = ForumManager()
 
