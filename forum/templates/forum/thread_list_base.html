@@ -1,5 +1,5 @@
 {% extends "forum_base.html" %}
-{% load i18n %}
+{% load i18n forum_tags %}
 
 {% block title %}{{ block.super }} / {{ forum.title }}{% endblock %}
 
@@ -67,7 +67,7 @@
 {% endif %}
 
 <h2>{% trans "Create a Thread" %}</h2>
-{% if user.is_authenticated %}
+{% if user|can_post_in:forum %}
 <form method='post' action='new/'>{% csrf_token %}
 <p><label>{% trans "Posting As" %}</label><span>{{ user.username }}</span></p>
 {{ form.as_p }}
