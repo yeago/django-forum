@@ -9,7 +9,10 @@ Usage in your base urls.py:
 
 """
 
-from django.conf.urls.defaults import patterns, url
+try:
+    from django.conf.urls.defaults import patterns, url
+except ImportError:
+    from django.conf.urls import patterns, url
 from forum.feeds import RssForumFeed, AtomForumFeed
 from forum.sitemap import ForumSitemap, ThreadSitemap, PostSitemap
 from forum.views import ForumList, ThreadList, PostList
