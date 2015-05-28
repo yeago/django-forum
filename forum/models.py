@@ -30,7 +30,16 @@ def update_thread(sender, request, **kwargs):
 
 comment_was_posted.connect(update_thread,sender=Comment)
 
+
+class Category(models.Model):
+    only_upgraders = models.BooleanField(default=False)
+    title = models.CharField(max_length=250)
+    slug = models.SlugField()
+    description = models.TextField()
+
+
 from forum.managers import ForumManager
+
 
 class Forum(models.Model):
     """
@@ -52,6 +61,8 @@ class Forum(models.Model):
     site = models.ForeignKey('sites.Site')
     only_staff_posts = models.BooleanField(default=False)
     only_staff_reads = models.BooleanField(default=False)
+    only_upgraders = models.BooleanField(default=False)
+    category = models.ForeignKey(Category, blank=True, null=True)
 
     objects = ForumManager()
 
