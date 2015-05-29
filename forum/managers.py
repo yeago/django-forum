@@ -6,9 +6,7 @@ class ForumManager(models.Manager):
     def for_user(self, user):
         if user.is_staff:
             return self.all()
-        if user.is_authenticated and hasattr(user, 'userprofile') and getattr(user.userprofile, 'is_upgraded', False):
-            return self.filter(only_staff_reads=False)
-        return self.filter(only_staff_reads=False, only_upgraders=False)
+        return self.filter(only_staff_reads=False)
 
     def for_groups(self, groups):
         return self.all()
@@ -19,7 +17,6 @@ class ForumManager(models.Manager):
         return self.filter(groups__isnull=True)
     
     def has_access(self, forum, user):
-        return not forum.only_upgraders or (user.is_authenticated and
-                                            hasattr(user, 'userprofile') and
-                                            getattr(user.userprofile, 'is_upgraded', False))
+        return True
         return forum in self.for_user(user)
+
