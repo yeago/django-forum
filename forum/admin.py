@@ -26,7 +26,7 @@ class CategoryForm(forms.ModelForm):
     class Meta:
         model = Category
 
-    forums = forms.ModelMultipleChoiceField(queryset=Forum.objects.all())
+    forums = forms.ModelMultipleChoiceField(queryset=Forum.objects.all(), required=False)
 
     def __init__(self, *args, **kwargs):
         super(CategoryForm, self).__init__(*args, **kwargs)

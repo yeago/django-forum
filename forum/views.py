@@ -146,8 +146,8 @@ def can_post(forum, user):
     if forum.only_staff_posts:
         return user.is_authenticated and user.is_staff
     if forum.only_upgraders:
-        return user.is_authenticated and (user.is_staff or (user.hasattr('userprofile') and
-                                                            user.userprofile.getattr('is_upgraded', False)))
+        return user.is_authenticated and (user.is_staff or (hasattr(user, 'userprofile') and
+                                                            getattr(user.userprofile, 'is_upgraded', False)))
     return user.is_authenticated
 
 
