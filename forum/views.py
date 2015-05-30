@@ -100,10 +100,15 @@ class PostList(ListView):
     template_name='forum/thread.html'
     paginate_by=FORUM_PAGINATION
     model = comments.get_model()
+    
+    def get(self, *args, **kwargs):
+        re = super(PostList, self).get(*args, **kwargs)
+        if self.object.forum.slug != self.kwargs.get('forum'):
+            return HttpResponseRedirect(self.object.get_absolute_url())
+        return re
+        
     def get_queryset(self, **kwargs):
         self.object = get_object_or_404(Thread, slug=self.kwargs.get('thread'), forum__site=settings.SITE_ID)
-        if self.object.forum.slug != self.kwargs.get('forum'):
-            raise HttpResponseRedirect(self.object.get_absolute_url())
         if not Forum.objects.has_access(self.object.forum, self.request.user):
             raise Http404
         Post = comments.get_model()
