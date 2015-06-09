@@ -1,11 +1,12 @@
-""" 
+"""
 A basic forum model with corresponding thread/post models.
 
-Just about all logic required for smooth updates is in the save() 
+Just about all logic required for smooth updates is in the save()
 methods. A little extra logic is in views.py.
 """
 
 from django.db import models
+from django.core.cache import get_cache, InvalidCacheBackendError, ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.contrib import comments
@@ -17,6 +18,8 @@ from django.contrib.comments.signals import comment_was_posted
 from enuff.managers import EnuffManager
 
 Comment = comments.get_model()
+
+
 def update_thread(sender, request, **kwargs):
     instance = kwargs.get('comment')
     if instance.content_object.__class__ == Thread:
@@ -24,11 +27,17 @@ def update_thread(sender, request, **kwargs):
         x.latest_post = instance
         x.posts += 1
         x.save()
-        x.forum.posts += 1
-        x.forum.save()
         Thread.nonrel_objects.push_to_list("%s-latest-threads" % x.forum.slug, x, trim=25)
 
-comment_was_posted.connect(update_thread,sender=Comment)
+comment_was_posted.connect(update_thread, sender=Comment)
+
+
+def get_forum_cache():
+    try:
+        cache = get_cache('forum')
+    except (InvalidCacheBackendError, ImproperlyConfigured):
+        cache = None
+    return cache
 
 
 class Category(models.Model):
@@ -43,9 +52,7 @@ from forum.managers import ForumManager
 
 class Forum(models.Model):
     """
-    Very basic outline for a Forum, or group of threads. The threads
-    and posts fielsd are updated by the save() methods of their
-    respective models and are used for display purposes.
+    Very basic outline for a Forum, or group of threads.
 
     All of the parent/child recursion code here is borrowed directly from
     the Satchmo project: http://www.satchmoproject.com/
@@ -55,8 +62,6 @@ class Forum(models.Model):
     slug = models.SlugField(_("Slug"))
     parent = models.ForeignKey('self', blank=True, null=True, related_name='child')
     description = models.TextField(_("Description"))
-    threads = models.IntegerField(_("Threads"), default=0, editable=False)
-    posts = models.IntegerField(_("Posts"), default=0, editable=False)
     ordering = models.IntegerField(_("Ordering"), blank=True, null=True)
     site = models.ForeignKey('sites.Site')
     only_staff_posts = models.BooleanField(default=False)
@@ -65,6 +70,41 @@ class Forum(models.Model):
     category = models.ForeignKey(Category, blank=True, null=True)
 
     objects = ForumManager()
+
+    @property
+    def posts(self):
+        """
+        Get posts count for this forum (the sum of thread posts).
+        Cached for an hour.
+        """
+        key = "forum::{}::posts".format(self.pk)
+        cache = get_forum_cache()
+        value = cache.get(key) if cache else None
+        if value:
+            return value
+
+        value = self.thread_set.aggregate(models.Sum('posts'))['posts__sum']
+
+        if cache:
+            cache.set(key, value, 60*60)
+
+        return value
+
+    @property
+    def threads(self):
+        """ Get threads count for this forum. Cached for an hour. """
+        key = "forum::{}::threads".format(self.pk)
+        cache = get_forum_cache()
+        value = cache.get(key) if cache else None
+        if value:
+            return value
+
+        value = self.thread_set.count()
+
+        if cache:
+            cache.set(key, value, 60*60)
+
+        return value
 
     def latest_threads(self, limit=10):
         return Thread.nonrel_objects.get_list('%s-latest-threads' % self.slug, limit=limit)
@@ -143,7 +183,7 @@ class Forum(models.Model):
 
     def __unicode__(self):
         return u'%s' % self.title
-    
+
     class Meta:
         ordering = ['ordering', 'title',]
         verbose_name = _('Forum')
@@ -160,8 +200,10 @@ class Forum(models.Model):
         """
         Taken from a python newsgroup post
         """
-        if type(L) != type([]): return [L]
-        if L == []: return L
+        if type(L) != type([]):
+            return [L]
+        if L == []:
+            return L
         return self._flatten(L[0]) + self._flatten(L[1:])
 
     def _recurse_for_children(self, node):
@@ -180,12 +222,13 @@ class Forum(models.Model):
         flat_list = self._flatten(children_list[1:])
         return flat_list
 
+
 class Thread(models.Model):
     """
     A Thread belongs in a Forum, and is a collection of posts.
 
-    Threads can be closed or stickied which alter their behaviour 
-    in the thread listings. Again, the posts & views fields are 
+    Threads can be closed or stickied which alter their behaviour
+    in the thread listings. Again, the posts & views fields are
     automatically updated with saving a post or viewing the thread.
     """
     forum = models.ForeignKey(Forum)
@@ -207,29 +250,17 @@ class Thread(models.Model):
         verbose_name = _('Thread')
         verbose_name_plural = _('Threads')
 
-    def save(self, *args,**kwargs):
+    def save(self, *args, **kwargs):
         from slugify import SlugifyUniquely
         if not self.slug:
             self.slug = SlugifyUniquely(self.title, Thread)
-        f = self.forum
-        f.threads = f.thread_set.count()
-        f.save()
         self.site = Site.objects.get_current()
         if not self.sticky:
             self.sticky = False
-        super(Thread, self).save(*args,**kwargs)
+        super(Thread, self).save(*args, **kwargs)
 
-    def delete(self):
-        super(Thread, self).delete()
-        f = self.forum
-        f.threads = f.thread_set.count()
-        Post = comments.get_model()
-        ct = ContentType.objects.get_for_model(Forum)
-        f.posts = Post.objects.filter(content_type=ct,object_pk=f.id).count()
-        f.save()
-    
     def get_absolute_url(self):
-        return reverse('forum_view_thread', args=[self.forum.slug,self.slug])
-    
+        return reverse('forum_view_thread', args=[self.forum.slug, self.slug])
+
     def __unicode__(self):
-        return u'%s'% self.title.replace('[[','').replace(']]','')
+        return u'%s' % self.title.replace('[[', '').replace(']]', '')
