@@ -252,9 +252,6 @@ class Thread(Comment):
         from slugify import SlugifyUniquely
         if not self.slug:
             self.slug = SlugifyUniquely(self.title, Thread)
-        f = self.forum
-        f.threads = f.thread_set.count()
-        f.save()
         if not self.sticky:
             self.sticky = False
         super(Thread, self).save(*args, **kwargs)
