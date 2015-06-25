@@ -18,7 +18,7 @@ class ForumAdmin(admin.ModelAdmin):
 
 class ThreadAdmin(admin.ModelAdmin):
     list_display = ('title', 'forum', 'latest_post','comment')
-    raw_id_fields = ('comment',)
+    raw_id_fields = ('user',)
     list_filter = ('forum',)
 
 
