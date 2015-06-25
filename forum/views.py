@@ -234,14 +234,13 @@ def editthread(request, forum, thread):
     thread = get_object_or_404(Thread, slug=thread, forum__slug=forum,
                                site=settings.SITE_ID)
 
-    if not request.user.is_authenticated or thread.comment.user != request.user:
+    if not request.user.is_authenticated or thread.user != request.user:
         return HttpResponseForbidden()
 
     if request.method == "POST":
 
         form = CreateThreadForm(request.POST)
         if form.is_valid():
-
             # If previewing, render preview and form.
             if "preview" in request.POST:
                 return render_to_response('forum/previewthread.html',
@@ -252,20 +251,15 @@ def editthread(request, forum, thread):
                         'comment': form.cleaned_data['body'],
                         'user': request.user,
                     }))
-
-            # No preview means we're ready to save the post.
-            else:
-                thread.title = form.cleaned_data['title']
-                thread.comment.comment = form.cleaned_data['body']
-                thread.save()
-                thread.comment.save()
-
-                return HttpResponseRedirect(thread.get_absolute_url())
+            thread.title = form.cleaned_data['title']
+            thread.comment = form.cleaned_data['body']
+            thread.save()
+            return HttpResponseRedirect(thread.get_absolute_url())
 
     else:
         form = CreateThreadForm(initial={
             "title": thread.title,
-            "body": thread.comment.comment
+            "body": thread.comment
             })
 
     return render_to_response('forum/previewthread.html',
@@ -273,6 +267,6 @@ def editthread(request, forum, thread):
             'form': form,
             'forum': thread.forum,
             'thread': thread,
-            'comment': thread.comment.comment,
+            'comment': thread.comment,
             'user': request.user,
         }))
