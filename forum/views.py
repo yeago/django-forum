@@ -1,5 +1,5 @@
 """
-All forum logic is kept here - displaying lists of forums, threads 
+All forum logic is kept here - displaying lists of forums, threads
 and posts, adding new threads, and adding replies.
 """
 
@@ -14,9 +14,8 @@ from django.contrib.sites.models import Site
 from django.contrib import comments, messages
 from django.contrib.contenttypes.models import ContentType
 from django.conf import settings
-from django.core.cache import get_cache, InvalidCacheBackendError, ImproperlyConfigured
 
-from forum.models import Forum, Thread, Category
+from forum.models import Forum, Thread, Category, get_forum_cache
 from forum.forms import CreateThreadForm, ReplyForm
 from forum.signals import thread_created
 
@@ -25,14 +24,6 @@ FORUM_PAGINATION = getattr(settings, 'FORUM_PAGINATION', 20)
 LOGIN_URL = getattr(settings, 'LOGIN_URL', '/accounts/login/')
 FORUM_FLOOD_CONTROL = getattr(settings, 'FORUM_FLOOD_CONTROL', {})
 FORUM_POST_EXPIRE_IN = getattr(settings, 'FORUM_POST_EXPIRE_IN', 0)
-
-
-def get_forum_cache():
-    try:
-        cache = get_cache('forum')
-    except (InvalidCacheBackendError, ImproperlyConfigured):
-        cache = None
-    return cache
 
 
 class ForumList(ListView):
@@ -100,13 +91,13 @@ class PostList(ListView):
     template_name='forum/thread.html'
     paginate_by=FORUM_PAGINATION
     model = comments.get_model()
-    
+
     def get(self, *args, **kwargs):
         re = super(PostList, self).get(*args, **kwargs)
         if self.object.forum.slug != self.kwargs.get('forum'):
             return HttpResponseRedirect(self.object.get_absolute_url())
         return re
-        
+
     def get_queryset(self, **kwargs):
         self.object = get_object_or_404(Thread, slug=self.kwargs.get('thread'), forum__site=settings.SITE_ID)
         if not Forum.objects.has_access(self.object.forum, self.request.user):
@@ -161,8 +152,7 @@ def can_post(forum, user):
 def previewthread(request, forum):
     """
     Renders a preview of the new post and gives the user
-    the option to modify it before posting. If called without
-    a POST, redirects to newthread.
+    the option to modify it before posting.
 
     Only allows a user to post if they're logged in.
     """
@@ -231,67 +221,56 @@ def previewthread(request, forum):
     return render_to_response('forum/newthread.html',
         RequestContext(request, {
             'form': form,
-            'forum': f, 
+            'forum': f,
         }))
 
-def newthread(request, forum):
-    """
-    Rudimentary post function - this should probably use 
-    newforms, although not sure how that goes when we're updating 
-    two models.
 
-    Only allows a user to post if they're logged in.
+def editthread(request, forum, thread):
     """
-    if not request.user.is_authenticated():
-        return HttpResponseRedirect('%s?next=%s' % (LOGIN_URL, request.path))
+    Edit the thread title and body.
+    """
+    thread = get_object_or_404(Thread, slug=thread, forum__slug=forum,
+                               site=settings.SITE_ID)
 
-    f = get_object_or_404(Forum, slug=forum, site=settings.SITE_ID)
-    
-    if not Forum.objects.has_access(f, request.user):
+    if not request.user.is_authenticated or thread.comment.user != request.user:
         return HttpResponseForbidden()
 
-    if request.method == 'POST':
+    if request.method == "POST":
+
         form = CreateThreadForm(request.POST)
-        """
-        #shouldn't be able to post without previewing first
         if form.is_valid():
-            t = Thread(
-                forum=f,
-                title=form.cleaned_data['title'],
-            )
-            t.save()
-            Post = comments.get_model()
-            ct = ContentType.objects.get_for_model(Thread)
 
-            p = Post(
-                content_type=ct,
-                object_pk=t.pk,
-                user=request.user,
-                comment=form.cleaned_data['body'],
-                submit_date=datetime.now(),
-                site=Site.objects.get_current(),
-            )
-            p.save()
-            t.latest_post = p
-            t.comment = p
-            t.save()
-   
-            " " "
-            undecided
-            if form.cleaned_data.get('subscribe', False):
-                s = Subscription(
-                    author=request.user,
-                    thread=t
-                    )
-                s.save()
-            " " "
-            return HttpResponseRedirect(t.get_absolute_url())
-        """
+            # If previewing, render preview and form.
+            if "preview" in request.POST:
+                return render_to_response('forum/previewthread.html',
+                    RequestContext(request, {
+                        'form': form,
+                        'forum': thread.forum,
+                        'thread': thread,
+                        'comment': form.cleaned_data['body'],
+                        'user': request.user,
+                    }))
+
+            # No preview means we're ready to save the post.
+            else:
+                thread.title = form.cleaned_data['title']
+                thread.comment.comment = form.cleaned_data['body']
+                thread.save()
+                thread.comment.save()
+
+                return HttpResponseRedirect(thread.get_absolute_url())
+
     else:
-        form = CreateThreadForm()
+        form = CreateThreadForm(initial={
+            "title": thread.title,
+            "body": thread.comment.comment
+            })
 
-    return render_to_response('forum/newthread.html',
+    return render_to_response('forum/previewthread.html',
         RequestContext(request, {
             'form': form,
-            'forum': f,
+            'forum': thread.forum,
+            'thread': thread,
+            'comment': thread.comment.comment,
+            'user': request.user,
         }))
