@@ -103,7 +103,7 @@ class PostList(ListView):
         if not Forum.objects.has_access(self.object.forum, self.request.user):
             raise Http404
         Post = comments.get_model()
-        return Post.objects.exclude(pk=self.object.comment_id).filter(
+        return Post.objects.filter(
             content_type=ContentType.objects.get_for_model(Thread),
             object_pk=self.object.pk).order_by('submit_date')
 
@@ -181,12 +181,18 @@ def previewthread(request, forum):
 
         form = CreateThreadForm(request.POST)
         if form.is_valid():
+            ct = ContentType.objects.get_for_model(Forum)
             t = Thread(
                 forum=f,
                 title=form.cleaned_data['title'],
+                content_type=ct,
+                object_pk=f.pk,
+                user=request.user,
+                comment=form.cleaned_data['body'],
+                submit_date=datetime.now(),
+                site=Site.objects.get_current(),
             )
             Post = comments.get_model()
-            ct = ContentType.objects.get_for_model(Thread)
 
             # If previewing, render preview and form.
             if "preview" in request.POST:
@@ -200,29 +206,16 @@ def previewthread(request, forum):
                     }))
 
             # No preview means we're ready to save the post.
-            else:
-                t.save()
-                p = Post(
-                    content_type=ct,
-                    object_pk=t.pk,
-                    user=request.user,
-                    comment=form.cleaned_data['body'],
-                    submit_date=datetime.now(),
-                    site=Site.objects.get_current(),
-                )
-                p.save()
-                t.latest_post = p
-                t.comment = p
-                t.save()
-                Thread.nonrel_objects.push_to_list('%s-latest-comments' % t.forum.slug, t, trim=30)
+            t.save()
+            Thread.nonrel_objects.push_to_list('%s-latest-comments' % t.forum.slug, t, trim=30)
 
-                thread_created.send(sender=Thread, instance=t, author=request.user)
-                if cache and forum in FORUM_FLOOD_CONTROL:
-                    cache.set(key,
-                              (t.title, t.get_absolute_url(), get_forum_expire_datetime(forum)),
-                              FORUM_FLOOD_CONTROL.get(forum, FORUM_POST_EXPIRE_IN))
+            thread_created.send(sender=Thread, instance=t, author=request.user)
+            if cache and forum in FORUM_FLOOD_CONTROL:
+                cache.set(key,
+                          (t.title, t.get_absolute_url(), get_forum_expire_datetime(forum)),
+                          FORUM_FLOOD_CONTROL.get(forum, FORUM_POST_EXPIRE_IN))
 
-                return HttpResponseRedirect(t.get_absolute_url())
+            return HttpResponseRedirect(t.get_absolute_url())
 
     else:
         form = CreateThreadForm()
@@ -241,14 +234,13 @@ def editthread(request, forum, thread):
     thread = get_object_or_404(Thread, slug=thread, forum__slug=forum,
                                site=settings.SITE_ID)
 
-    if not request.user.is_authenticated or thread.comment.user != request.user:
+    if not request.user.is_authenticated or thread.user != request.user:
         return HttpResponseForbidden()
 
     if request.method == "POST":
 
         form = CreateThreadForm(request.POST)
         if form.is_valid():
-
             # If previewing, render preview and form.
             if "preview" in request.POST:
                 return render_to_response('forum/previewthread.html',
@@ -259,20 +251,15 @@ def editthread(request, forum, thread):
                         'comment': form.cleaned_data['body'],
                         'user': request.user,
                     }))
-
-            # No preview means we're ready to save the post.
-            else:
-                thread.title = form.cleaned_data['title']
-                thread.comment.comment = form.cleaned_data['body']
-                thread.save()
-                thread.comment.save()
-
-                return HttpResponseRedirect(thread.get_absolute_url())
+            thread.title = form.cleaned_data['title']
+            thread.comment = form.cleaned_data['body']
+            thread.save()
+            return HttpResponseRedirect(thread.get_absolute_url())
 
     else:
         form = CreateThreadForm(initial={
             "title": thread.title,
-            "body": thread.comment.comment
+            "body": thread.comment
             })
 
     return render_to_response('forum/previewthread.html',
@@ -280,6 +267,6 @@ def editthread(request, forum, thread):
             'form': form,
             'forum': thread.forum,
             'thread': thread,
-            'comment': thread.comment.comment,
+            'comment': thread.comment,
             'user': request.user,
         }))
