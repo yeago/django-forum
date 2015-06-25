@@ -240,7 +240,6 @@ class Thread(models.Model):
     views = models.IntegerField(_("Views"), default=0)
     comment = models.ForeignKey('comments_app.TappedComment',null=True,blank=True,related_name="commentthread_set") # Two way link
     latest_post = models.ForeignKey('comments_app.TappedComment',editable=False,null=True,blank=True)
-    site = models.ForeignKey('sites.Site')
 
     objects = models.Manager()
     nonrel_objects = EnuffManager()
@@ -254,7 +253,6 @@ class Thread(models.Model):
         from slugify import SlugifyUniquely
         if not self.slug:
             self.slug = SlugifyUniquely(self.title, Thread)
-        self.site = Site.objects.get_current()
         if not self.sticky:
             self.sticky = False
         super(Thread, self).save(*args, **kwargs)

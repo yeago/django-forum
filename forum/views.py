@@ -239,7 +239,7 @@ def editthread(request, forum, thread):
     Edit the thread title and body.
     """
     thread = get_object_or_404(Thread, slug=thread, forum__slug=forum,
-                               site=settings.SITE_ID)
+                               forum__site=settings.SITE_ID)
 
     if not request.user.is_authenticated or thread.comment.user != request.user:
         return HttpResponseForbidden()
