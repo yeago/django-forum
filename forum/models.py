@@ -180,7 +180,7 @@ class Forum(models.Model):
         flat_list = self._flatten(children_list[1:])
         return flat_list
 
-class Thread(models.Model):
+class Thread(Comment):
     """
     A Thread belongs in a Forum, and is a collection of posts.
 
@@ -195,9 +195,8 @@ class Thread(models.Model):
     closed = models.BooleanField(_("Closed?"), blank=True, default=False)
     posts = models.IntegerField(_("Posts"), default=0)
     views = models.IntegerField(_("Views"), default=0)
-    comment = models.ForeignKey('comments_app.TappedComment',null=True,blank=True,related_name="commentthread_set") # Two way link
-    latest_post = models.ForeignKey('comments_app.TappedComment',editable=False,null=True,blank=True)
-    site = models.ForeignKey('sites.Site')
+    comment_ptr = models.OneToOneField(Comment, parent_link=True, db_column="comment_id", related_name="commentptr_set")
+    latest_post = models.ForeignKey('comments_app.TappedComment',editable=False,null=True,blank=True, related_name="latestpost_set")
 
     objects = models.Manager()
     nonrel_objects = EnuffManager()
@@ -214,7 +213,6 @@ class Thread(models.Model):
         f = self.forum
         f.threads = f.thread_set.count()
         f.save()
-        self.site = Site.objects.get_current()
         if not self.sticky:
             self.sticky = False
         super(Thread, self).save(*args,**kwargs)
