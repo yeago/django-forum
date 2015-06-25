@@ -103,7 +103,7 @@ class PostList(ListView):
         if not Forum.objects.has_access(self.object.forum, self.request.user):
             raise Http404
         Post = comments.get_model()
-        return Post.objects.exclude(pk=self.object.comment_id).filter(
+        return Post.objects.exclude(pk=self.object.comment_ptr_id).filter(
             content_type=ContentType.objects.get_for_model(Thread),
             object_pk=self.object.pk).order_by('submit_date')
 
