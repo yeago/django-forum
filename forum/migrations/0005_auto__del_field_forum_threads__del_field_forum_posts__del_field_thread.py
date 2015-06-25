@@ -30,13 +30,10 @@ class Migration(SchemaMigration):
                       keep_default=False)
 
 
-        # User chose to not deal with backwards NULL issues for 'Thread.site'
-        raise RuntimeError("Cannot reverse this migration. 'Thread.site' and its values cannot be restored.")
-        
         # The following code is provided here to aid in writing a correct migration        # Adding field 'Thread.site'
         db.add_column(u'forum_thread', 'site',
                       self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sites.Site']),
-                      keep_default=False)
+                      keep_default=False, default=1)
 
 
     models = {

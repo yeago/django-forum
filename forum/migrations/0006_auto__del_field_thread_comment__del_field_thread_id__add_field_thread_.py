@@ -17,7 +17,7 @@ class Migration(SchemaMigration):
 
         # Adding field 'Thread.comment_ptr'
         #db.add_column(u'forum_thread', 'comment_ptr',
-        #              self.gf('django.db.models.fields.related.OneToOneField')(related_name='commentptr_set', primary_key=True, db_column='comment_id', default=1, to=orm['comments_app.TappedComment'], unique=True),
+        #              self.gf('django.db.models.fields.related.OneToOneField')(related_name='commentptr_set', primary_key=True, db_column='comment_id', to=orm['comments_app.TappedComment'], unique=True, null=True, blank=True),
         #              keep_default=False)
 
 
