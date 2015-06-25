@@ -223,7 +223,7 @@ class Forum(models.Model):
         return flat_list
 
 
-class Thread(Comment):
+class Thread(models.Model):
     """
     A Thread belongs in a Forum, and is a collection of posts.
 
@@ -231,7 +231,6 @@ class Thread(Comment):
     in the thread listings. Again, the posts & views fields are
     automatically updated with saving a post or viewing the thread.
     """
-    old_id = models.IntegerField(max_length=10, db_column="id", null=True, blank=True)
     forum = models.ForeignKey(Forum)
     title = models.CharField(_("Title"), max_length=100)
     slug = models.SlugField(_("Slug"), max_length=105)
@@ -239,13 +238,15 @@ class Thread(Comment):
     closed = models.BooleanField(_("Closed?"), blank=True, default=False)
     posts = models.IntegerField(_("Posts"), default=0)
     views = models.IntegerField(_("Views"), default=0)
-    comment_ptr = models.OneToOneField('comments_app.TappedComment', db_column="comment_id", parent_link=True) # Two way link
-    latest_post = models.ForeignKey('comments_app.TappedComment',editable=False,null=True,blank=True, related_name="latestpost")
+    comment = models.ForeignKey('comments_app.TappedComment',null=True,blank=True,related_name="commentthread_set") # Two way link
+    latest_post = models.ForeignKey('comments_app.TappedComment',editable=False,null=True,blank=True)
+    site = models.ForeignKey('sites.Site')
 
     objects = models.Manager()
     nonrel_objects = EnuffManager()
 
     class Meta:
+        ordering = ('-id',)
         verbose_name = _('Thread')
         verbose_name_plural = _('Threads')
 
@@ -253,6 +254,7 @@ class Thread(Comment):
         from slugify import SlugifyUniquely
         if not self.slug:
             self.slug = SlugifyUniquely(self.title, Thread)
+        self.site = Site.objects.get_current()
         if not self.sticky:
             self.sticky = False
         super(Thread, self).save(*args, **kwargs)
