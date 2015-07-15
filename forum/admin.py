@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django import forms
 from forum.models import Forum, Thread, Category
+from forum.signals import thread_moved
 
 
 class ForumAdmin(admin.ModelAdmin):
@@ -20,6 +21,11 @@ class ThreadAdmin(admin.ModelAdmin):
     list_display = ('title', 'forum', 'latest_post','comment')
     raw_id_fields = ('comment',)
     list_filter = ('forum',)
+
+    def save_model(self, request, obj, form, change):
+        if obj.forum != form.fields['forum']:
+            thread_moved.send(sender=Thread, instance=obj, user=request.user)
+        super(ThreadAdmin, self).save_model(request, obj, form, change)
 
 
 class CategoryForm(forms.ModelForm):
