@@ -23,7 +23,7 @@ class ThreadAdmin(admin.ModelAdmin):
     list_filter = ('forum',)
 
     def save_model(self, request, obj, form, change):
-        if obj.forum != form.fields['forum']:
+        if 'forum' in form.changed_data:
             thread_moved.send(sender=Thread, instance=obj, user=request.user)
         super(ThreadAdmin, self).save_model(request, obj, form, change)
 
