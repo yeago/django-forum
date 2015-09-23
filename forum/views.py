@@ -42,16 +42,17 @@ class ForumList(ListView):
 
 
 class ThreadList(ListView):
-    template_object_name='thread',
-    template_name='forum/thread_list.html'
+    template_object_name = 'thread',
+    template_name = 'forum/thread_list.html'
     paginate_by = FORUM_PAGINATION
-    def get_queryset(self):
+
+    def get_queryset(self, sticky=False):
         try:
             self.f = Forum.objects.for_user(self.request.user
                     ).select_related().get(slug=self.kwargs.get('slug'), site=settings.SITE_ID)
         except Forum.DoesNotExist:
             raise Http404
-        return self.f.thread_set.all()
+        return self.f.thread_set.filter(sticky=sticky)
 
     def get_context_data(self, **kwargs):
         context = super(ThreadList, self).get_context_data(**kwargs)
@@ -74,10 +75,12 @@ class ThreadList(ListView):
 
         recent_threads = [i for i in self.get_queryset()[:30] if i.posts > 0][:10]
         active_threads = Thread.nonrel_objects.get_list("%s-latest-threads" % self.f.slug, limit=10)
+        sticky_threads = self.get_queryset(sticky=True)
         context.update({
             'forum': self.f,
             'active_threads': active_threads,
             'recent_threads': recent_threads,
+            'sticky_threads': sticky_threads,
             'form': form,
             'last_post_title': post_title,
             'last_post_url': post_url,
@@ -181,9 +184,11 @@ def previewthread(request, forum):
 
         form = CreateThreadForm(request.POST)
         if form.is_valid():
+            is_staff = request.user.is_staff or request.user.is_superuser
             t = Thread(
                 forum=f,
                 title=form.cleaned_data['title'],
+                sticky=form.cleaned_data['sticky'] if is_staff else False
             )
             Post = comments.get_model()
             ct = ContentType.objects.get_for_model(Thread)

@@ -7,6 +7,7 @@ class CreateThreadForm(forms.Form):
                             widget=forms.TextInput(attrs={'class': 'form-control'}))
     body = forms.CharField(label=_("Body"),
                            widget=forms.Textarea(attrs={'rows': 8, 'cols': 50, 'class': 'form-control'}))
+    sticky = forms.BooleanField(label=_("Sticky"), required=False)
 
 
 class ReplyForm(forms.Form):
