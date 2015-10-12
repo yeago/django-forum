@@ -9,13 +9,16 @@ from django.db import models
 from django.core.cache import get_cache, InvalidCacheBackendError, ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
-from django.contrib import comments
 from django.contrib.sites.models import Site
 from django.contrib.contenttypes.models import ContentType
 
 from django.contrib.comments.signals import comment_was_posted
 
 from enuff.managers import EnuffManager
+try:
+    from django.contrib import comments
+except ImportError:
+    import django_comments as comments
 
 Comment = comments.get_model()
 

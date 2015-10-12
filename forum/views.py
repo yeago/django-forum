@@ -11,9 +11,14 @@ from django.http import Http404, HttpResponseRedirect, HttpResponseForbidden
 from django.template import RequestContext
 from django.views.generic.list import ListView
 from django.contrib.sites.models import Site
-from django.contrib import comments, messages
+from django.contrib import messages
 from django.contrib.contenttypes.models import ContentType
 from django.conf import settings
+
+try:
+    from django.contrib import comments
+except ImportError:
+    import django_comments as comments
 
 from forum.models import Forum, Thread, Category, get_forum_cache
 from forum.forms import CreateThreadForm, ReplyForm
