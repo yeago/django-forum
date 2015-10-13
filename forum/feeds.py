@@ -44,7 +44,7 @@ class RssForumFeed(Feed):
             return reverse('forum_index')
 
     def get_query_set(self, obj):
-        Post = comments.get_model()
+        Post = django_comments.get_model()
         if obj:
             return Post.objects.filter(thread__forum__pk=obj.id).order_by('-time')
         else:

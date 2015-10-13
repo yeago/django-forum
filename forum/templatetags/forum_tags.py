@@ -1,12 +1,9 @@
-from django.contrib import comments
-from django.utils.translation import ugettext as _
-from django.template import Library, Node, TemplateSyntaxError, Variable, resolve_variable
-
-
+from django.template import Library, Node, TemplateSyntaxError, Variable
 from forum.models import Thread
+import django_comments
 
 register = Library()
-Post = comments.get_model()
+Post = django_comments.get_model()
 
 
 def forum_latest_thread_activity(parser, token):

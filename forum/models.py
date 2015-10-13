@@ -12,13 +12,13 @@ from django.utils.translation import ugettext_lazy as _
 from django.contrib.sites.models import Site
 from django.contrib.contenttypes.models import ContentType
 
-from django.contrib.comments.signals import comment_was_posted
-
 from enuff.managers import EnuffManager
 try:
     from django.contrib import comments
+    from django.contrib.comments.signals import comment_was_posted
 except ImportError:
     import django_comments as comments
+    from django_comments.signals import comment_was_posted
 
 Comment = comments.get_model()
 
