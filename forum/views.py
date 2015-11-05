@@ -33,7 +33,7 @@ FORUM_POST_EXPIRE_IN = getattr(settings, 'FORUM_POST_EXPIRE_IN', 0)
 
 class ForumList(ListView):
     def get_queryset(self):
-        return Forum.objects.for_user(self.request.user).filter(parent__isnull=True, site=settings.SITE_ID)
+        return Forum.objects.for_user(self.request.user).filter(restricted=False, parent__isnull=True, site=settings.SITE_ID)
 
     def get_context_data(self, **kwargs):
         context = super(ForumList, self).get_context_data(**kwargs)
@@ -43,6 +43,8 @@ class ForumList(ListView):
         else:
             categories = Category.objects.filter(only_upgraders=False)
         context['categories'] = categories
+        if self.request.user.is_authenticated():
+            context['restricted_forums'] = [i.forum for i in Forum.allowed_users.through.objects.filter(user=self.request.user)]
         return context
 
 
@@ -53,11 +55,14 @@ class ThreadList(ListView):
 
     def get_queryset(self, sticky=False):
         try:
-            self.f = Forum.objects.for_user(self.request.user
-                    ).select_related().get(slug=self.kwargs.get('slug'), site=settings.SITE_ID)
+            self.forum = Forum.objects.for_user(
+                self.request.user).select_related().get(slug=self.kwargs.get('slug'), site=settings.SITE_ID)
+            if self.forum.is_restricted:
+                if not self.request.user.is_authenticated() or self.request.user not in self.forum.allowed_users.all():
+                    raise Http404
         except Forum.DoesNotExist:
             raise Http404
-        return self.f.thread_set.filter(sticky=sticky)
+        return self.forum.thread_set.filter(sticky=sticky)
 
     def get_context_data(self, **kwargs):
         context = super(ThreadList, self).get_context_data(**kwargs)
@@ -67,7 +72,7 @@ class ThreadList(ListView):
         cache = get_forum_cache()
         if self.request.user.is_authenticated() and cache:
             user = self.request.user
-            key = make_cache_forum_key(user, self.f.slug, settings.SITE_ID)
+            key = make_cache_forum_key(user, self.forum.slug, settings.SITE_ID)
             try:
                 from_cache = cache.get(key)
             except Exception:
@@ -76,13 +81,12 @@ class ThreadList(ListView):
                 post_title, post_url, expire_date = from_cache
                 expire_date = datetime.fromtimestamp(expire_date)
                 form = None
-        #child_forums = f.child.for_groups(request.user.groups.all())
 
         recent_threads = [i for i in self.get_queryset()[:30] if i.posts > 0][:10]
-        active_threads = Thread.nonrel_objects.get_list("%s-latest-threads" % self.f.slug, limit=10)
+        active_threads = Thread.nonrel_objects.get_list("%s-latest-threads" % self.forum.slug, limit=10)
         sticky_threads = self.get_queryset(sticky=True)
         context.update({
-            'forum': self.f,
+            'forum': self.forum,
             'active_threads': active_threads,
             'recent_threads': recent_threads,
             'sticky_threads': sticky_threads,
