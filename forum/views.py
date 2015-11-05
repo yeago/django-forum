@@ -57,7 +57,7 @@ class ThreadList(ListView):
         try:
             self.forum = Forum.objects.for_user(
                 self.request.user).select_related().get(slug=self.kwargs.get('slug'), site=settings.SITE_ID)
-            if self.forum.is_restricted:
+            if self.forum.restricted:
                 if not self.request.user.is_authenticated() or self.request.user not in self.forum.allowed_users.all():
                     raise Http404
         except Forum.DoesNotExist:
