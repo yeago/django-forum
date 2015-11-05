@@ -10,7 +10,6 @@ class Migration(migrations.Migration):
     dependencies = [
         ('sites', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('comments_app', '0002_auto_20151104_2141'),
     ]
 
     operations = [
