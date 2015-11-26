@@ -191,7 +191,7 @@ def previewthread(request, forum):
 
                 return HttpResponseRedirect(post_url)
 
-        form = CreateThreadForm(request.POST)
+        form = CreateThreadForm(request.POST, user=request.user)
         if form.is_valid():
             is_staff = request.user.is_staff or request.user.is_superuser
             t = Thread(
@@ -260,7 +260,7 @@ def editthread(request, forum, thread):
 
     if request.method == "POST":
 
-        form = CreateThreadForm(request.POST)
+        form = CreateThreadForm(request.POST, is_edit=True)
         if form.is_valid():
 
             # If previewing, render preview and form.
