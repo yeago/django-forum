@@ -278,6 +278,7 @@ def editthread(request, forum, thread):
             else:
                 thread.title = form.cleaned_data['title']
                 thread.comment.comment = form.cleaned_data['body']
+                thread.sticky = form.cleaned_data['sticky']
                 thread.save()
                 thread.comment.save()
 
@@ -286,7 +287,8 @@ def editthread(request, forum, thread):
     else:
         form = CreateThreadForm(initial={
             "title": thread.title,
-            "body": thread.comment.comment
+            "body": thread.comment.comment,
+            "sticky": thread.sticky
             })
 
     return render_to_response('forum/previewthread.html',
