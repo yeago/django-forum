@@ -4,6 +4,7 @@ from django.contrib.admin.widgets import FilteredSelectMultiple
 from django import forms
 from forum.models import Forum, Thread, Category
 from forum.signals import thread_moved
+from subscription.models import Subscription
 
 
 class ForumAdmin(admin.ModelAdmin):
@@ -14,7 +15,13 @@ class ForumAdmin(admin.ModelAdmin):
     formfield_overrides = {
         models.ManyToManyField: {'widget': FilteredSelectMultiple("allowed users",is_stacked=False) },
     }
-    #raw_id_fields = ['allowed_users']
+
+    def save_model(self, request, obj, form, change):
+        if 'allowed_users' in form.changed_data:
+            if obj.restricted or form.cleaned_data.get('restricted'):
+                for user in form.cleaned_data['allowed_users']:
+                    Subscription.objects.subscribe(user, obj)
+        super(ForumAdmin, self).save_model(request, obj, form, change)
 
 
 class ThreadAdmin(admin.ModelAdmin):
