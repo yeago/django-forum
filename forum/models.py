@@ -6,7 +6,8 @@ methods. A little extra logic is in views.py.
 """
 
 from django.db import models
-from django.core.cache import caches, InvalidCacheBackendError, ImproperlyConfigured
+from django.core.cache import caches, InvalidCacheBackendError
+from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.sites.models import Site
