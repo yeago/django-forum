@@ -50,8 +50,13 @@ class ForumList(ListView):
 
 class ThreadList(ListView):
     template_object_name = 'thread',
-    template_name = 'forum/thread_list.html'
     paginate_by = FORUM_PAGINATION
+
+    def get_template_names(self):
+        return [
+            'forum/%s_thread_list.html' % self.forum.slug,
+            'forum/thread_list.html',
+        ]
 
     def get_queryset(self, sticky=False):
         try:
@@ -99,10 +104,15 @@ class ThreadList(ListView):
 
 
 class PostList(ListView):
-    template_object_name='post'
-    template_name='forum/thread.html'
-    paginate_by=FORUM_PAGINATION
+    template_object_name = 'post'
+    paginate_by = FORUM_PAGINATION
     model = comments.get_model()
+
+    def get_template_names(self):
+        return [
+            'forum/%s_thread.html' % self.object.forum.slug,
+            'forum/thread.html',
+        ]
 
     def get(self, *args, **kwargs):
         re = super(PostList, self).get(*args, **kwargs)
