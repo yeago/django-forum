@@ -243,7 +243,7 @@ class Thread(models.Model):
     posts = models.IntegerField(_("Posts"), default=0)
     views = models.IntegerField(_("Views"), default=0)
     comment = models.ForeignKey('comments_app.TappedComment',null=True,blank=True,related_name="commentthread_set") # Two way link
-    latest_post = models.ForeignKey('comments_app.TappedComment',editable=False,null=True,blank=True)
+    latest_post = models.ForeignKey('comments_app.TappedComment',editable=False,null=True,blank=True, on_delete=models.SET_NULL)
 
     objects = models.Manager()
     nonrel_objects = EnuffManager()
