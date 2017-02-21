@@ -235,6 +235,7 @@ class Thread(models.Model):
     in the thread listings. Again, the posts & views fields are
     automatically updated with saving a post or viewing the thread.
     """
+    featured = models.BooleanField(default=False, blank=True)
     forum = models.ForeignKey(Forum)
     title = models.CharField(_("Title"), max_length=100)
     slug = models.SlugField(_("Slug"), max_length=105)
