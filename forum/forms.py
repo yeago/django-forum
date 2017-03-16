@@ -1,3 +1,4 @@
+import datetime
 from django import forms
 from django.utils.translation import ugettext as _
 from django.utils.safestring import mark_safe
@@ -19,6 +20,13 @@ class CreateThreadForm(forms.Form):
         super(CreateThreadForm, self).__init__(*args, **kwargs)
 
     def clean(self):
+        try:
+            latest = Thread.objects.filter(comment__user=self.user).latest('comment__submit_date')
+            if latest.comment.submit_date < datetime.datetime.now() - datetime.timedelta(minutes=5):
+                raise forms.ValidationError("You may not create threads on this site that often.")
+        except Thread.DoesNotExist:
+            pass
+
         data = self.cleaned_data
         if not self.is_edit and 'title' in data:
             duplicates = Thread.objects.filter(comment__user=self.user,
@@ -27,9 +35,9 @@ class CreateThreadForm(forms.Form):
             # avoid the same Thread created multiple times
             if duplicates.count():
                 raise forms.ValidationError(mark_safe('%s <a href="%s">%s</a>' % (
-                            _("Oops. Looks like a duplicate of"),
-                            duplicates[0].get_absolute_url(),
-                            duplicates[0].title)))
+                    _("Possible duplicate submission. Your post may already be posted. Please see "),
+                    duplicates[0].get_absolute_url(),
+                    duplicates[0].title)))
 
         return data
 
