@@ -22,7 +22,7 @@ class CreateThreadForm(forms.Form):
     def clean(self):
         try:
             latest = Thread.objects.filter(comment__user=self.user).latest('comment__submit_date')
-            if latest.comment.submit_date < datetime.datetime.now() - datetime.timedelta(minutes=5):
+            if latest.comment.submit_date > datetime.datetime.now() - datetime.timedelta(minutes=5):
                 raise forms.ValidationError("You may not create threads on this site that often.")
         except Thread.DoesNotExist:
             pass
