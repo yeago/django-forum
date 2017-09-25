@@ -1,6 +1,4 @@
 from django.contrib import admin
-from django.db import models
-from django.contrib.admin.widgets import FilteredSelectMultiple
 from django import forms
 from forum.models import Forum, Thread, Category
 from forum.signals import thread_moved
@@ -12,9 +10,6 @@ class ForumAdmin(admin.ModelAdmin):
     ordering = ['ordering', 'parent', 'title']
     prepopulated_fields = {"slug": ("title",)}
     raw_id_fields = ['allowed_users']
-    formfield_overrides = {
-        models.ManyToManyField: {'widget': FilteredSelectMultiple("allowed users",is_stacked=False) },
-    }
 
     def save_model(self, request, obj, form, change):
         if 'allowed_users' in form.changed_data:
@@ -25,13 +20,17 @@ class ForumAdmin(admin.ModelAdmin):
 
 
 class ThreadAdmin(admin.ModelAdmin):
-    list_display = ('title', 'forum', 'latest_post','comment')
-    raw_id_fields = ('comment',)
+    list_display = ('title', 'forum', 'latest_post', 'comment')
+    raw_id_fields = ['banned_users', 'comment']
     list_filter = ('forum',)
 
     def save_model(self, request, obj, form, change):
         if 'forum' in form.changed_data:
             thread_moved.send(sender=Thread, instance=obj, user=request.user)
+        if 'banned_users' in form.changed_data:
+            if obj.restricted or form.cleaned_data.get('restricted'):
+                for user in form.cleaned_data['banned_users']:
+                    Subscription.objects.unsubscribe(user, obj)
         super(ThreadAdmin, self).save_model(request, obj, form, change)
 
 

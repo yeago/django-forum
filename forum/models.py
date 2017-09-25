@@ -5,6 +5,8 @@ Just about all logic required for smooth updates is in the save()
 methods. A little extra logic is in views.py.
 """
 
+from django.core import validators
+from slugify import SlugifyUniquely
 from django.db import models
 from django.core.cache import caches
 from django.core.urlresolvers import reverse
@@ -19,6 +21,9 @@ try:
 except ImportError:
     import django_comments as comments
     from django_comments.signals import comment_was_posted
+
+from forum.managers import ForumManager
+
 
 Comment = comments.get_model()
 
@@ -50,9 +55,6 @@ class Category(models.Model):
     description = models.TextField()
 
 
-from forum.managers import ForumManager
-
-
 class Forum(models.Model):
     """
     Very basic outline for a Forum, or group of threads.
@@ -61,7 +63,8 @@ class Forum(models.Model):
     the Satchmo project: http://www.satchmoproject.com/
     """
     restricted = models.BooleanField(default=False)  # used in conjunction with below
-    allowed_users = models.ManyToManyField('auth.User',blank=True,related_name="allowed_forums",help_text="Ignore if non-restricted")
+    allowed_users = models.ManyToManyField(
+        'auth.User', blank=True, related_name="allowed_forums", help_text="Ignore if non-restricted")
     title = models.CharField(_("Title"), max_length=100)
     slug = models.SlugField(_("Slug"))
     parent = models.ForeignKey('self', blank=True, null=True, related_name='child')
@@ -119,14 +122,15 @@ class Forum(models.Model):
             Post = comments.get_model()
         ct = ContentType.objects.get_for_model(Forum)
         try:
-            self.__forum_latest_post = Post.objects.filter(content_type=ct,object_pk=self.id).latest("submit_date")
+            self.__forum_latest_post = Post.objects.filter(
+                content_type=ct, object_pk=self.id).latest("submit_date")
         except Post.DoesNotExist:
             self.__forum_latest_post = None
         return self.__forum_latest_post
     forum_latest_post = property(_get_forum_latest_post)
 
     def _recurse_for_parents_slug(self, forum_obj):
-        #This is used for the urls
+        # This is used for the urls
         p_list = []
         if forum_obj.parent_id:
             p = forum_obj.parent
@@ -140,10 +144,10 @@ class Forum(models.Model):
     def get_absolute_url(self):
         p_list = self._recurse_for_parents_slug(self)
         p_list.append(self.slug)
-        return '%s%s/' % (reverse('forum_list'), '/'.join (p_list))
+        return '%s%s/' % (reverse('forum_list'), '/'.join(p_list))
 
     def _recurse_for_parents_name(self, forum_obj):
-        #This is used for the visual display & save validation
+        # This is used for the visual display & save validation
         p_list = []
         if forum_obj.parent_id:
             p = forum_obj.parent
@@ -163,7 +167,7 @@ class Forum(models.Model):
     _parents_repr.short_description = _("Forum parents")
 
     def _recurse_for_parents_name_url(self, forum__obj):
-        #Get all the absolute urls and names (for use in site navigation)
+        # Get all the absolute urls and names (for use in site navigation)
         p_list = []
         url_list = []
         if forum__obj.parent_id:
@@ -179,7 +183,7 @@ class Forum(models.Model):
         return p_list, url_list
 
     def get_url_name(self):
-        #Get a list of the url to display and the actual urls
+        # :Get a list of the url to display and the actual urls
         p_list, url_list = self._recurse_for_parents_name_url(self)
         p_list.append(self.title)
         url_list.append(self.get_absolute_url())
@@ -189,7 +193,7 @@ class Forum(models.Model):
         return u'%s' % self.title
 
     class Meta:
-        ordering = ['ordering', 'title',]
+        ordering = ['ordering', 'title']
         verbose_name = _('Forum')
         verbose_name_plural = _('Forums')
 
@@ -204,7 +208,7 @@ class Forum(models.Model):
         """
         Taken from a python newsgroup post
         """
-        if type(L) != type([]):
+        if not isinstance(L, list):
             return [L]
         if L == []:
             return L
@@ -243,8 +247,13 @@ class Thread(models.Model):
     closed = models.BooleanField(_("Closed?"), blank=True, default=False)
     posts = models.IntegerField(_("Posts"), default=0)
     views = models.IntegerField(_("Views"), default=0)
-    comment = models.ForeignKey('comments_app.TappedComment',null=True,blank=True,related_name="commentthread_set") # Two way link
-    latest_post = models.ForeignKey('comments_app.TappedComment',editable=False,null=True,blank=True, on_delete=models.SET_NULL)
+    comment = models.ForeignKey(
+        'comments_app.TappedComment', null=True, blank=True, related_name="commentthread_set")  # Two way link
+    latest_post = models.ForeignKey(
+        'comments_app.TappedComment', editable=False, null=True, blank=True,  on_delete=models.SET_NULL)
+
+    banned_users = models.ManyToManyField(
+        'auth.User', blank=True, related_name="banned_forums")
 
     objects = models.Manager()
     nonrel_objects = EnuffManager()
@@ -255,7 +264,6 @@ class Thread(models.Model):
         verbose_name_plural = _('Threads')
 
     def save(self, *args, **kwargs):
-        from slugify import SlugifyUniquely
         if not self.slug:
             self.slug = SlugifyUniquely(self.title, Thread)
         if not self.sticky:
