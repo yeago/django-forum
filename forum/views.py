@@ -231,7 +231,7 @@ def thread(request, forum, thread=None):
     preview_comment = form.initial.get('body')
     if not preview_instance:
         preview_instance = Thread(
-            title=form.initial.get('title') or form.cleaned_data.get('title'),
+            title=form.initial.get('title') or form.data.get('title'),
             forum=f_instance)
         preview_comment = form.data.get('body')
 
