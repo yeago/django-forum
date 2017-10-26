@@ -195,17 +195,21 @@ def thread(request, forum, thread=None):
 
     # If previewing, render preview and form.
     if "preview" in request.POST:
-        form.is_valid()
+        if form.is_valid():
+            data = form.cleaned_data
+        else:
+            data = form.data
+
         return render_to_response(
             'forum/previewthread.html',
             RequestContext(request, {
                 'form': form,
                 'thread': Thread(
-                    title=form.data.get('title') or form.cleaned_data.get('title'),
+                    title=data.get('title') or form.initial.get('title') or '',
                     forum=f_instance),
                 'forum': f_instance,
                 'instance': instance,
-                'comment': form.data.get('body') or form.cleaned_data['body'],
+                'comment': data.get('body') or form.initial.get('body') or '',
             }))
 
     if request.method == "POST" and form.is_valid():
@@ -227,20 +231,27 @@ def thread(request, forum, thread=None):
             thread_created.send(sender=Thread, instance=instance, author=request.user)
         return HttpResponseRedirect(instance.get_absolute_url())
 
-    preview_instance = instance
-    preview_comment = form.initial.get('body')
-    if not preview_instance:
+    if hasattr(form, 'cleaned_data'):
+        preview_comment = form.cleaned_data.get('body')
+    else:
+        preview_comment = form.data.get('body') or form.initial.get('body') or ''
+
+    preview_instance = None
+    if not instance:
+        if hasattr(form, 'cleaned_data'):
+            title = form.cleaned_data.get('title') or ''
+        else:
+            title = form.data.get('title') or form.initial.get('title') or ''
         preview_instance = Thread(
-            title=form.initial.get('title') or form.data.get('title'),
+            title=title,
             forum=f_instance)
-        preview_comment = form.data.get('body')
 
     return render(
         request,
         'forum/previewthread.html',
         {
             'form': form,
-            'thread': preview_instance,
+            'thread': preview_instance or instance,
             'forum': f_instance,
-            'comment': preview_comment,
+            'comment': preview_comment or '',
             })
