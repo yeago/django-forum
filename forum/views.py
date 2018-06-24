@@ -200,9 +200,10 @@ def thread(request, forum, thread=None):
         else:
             data = form.data
 
-        return render_to_response(
+        return render(
+            request,
             'forum/previewthread.html',
-            RequestContext(request, {
+            {
                 'form': form,
                 'thread': Thread(
                     title=data.get('title') or form.initial.get('title') or '',
@@ -210,7 +211,7 @@ def thread(request, forum, thread=None):
                 'forum': f_instance,
                 'instance': instance,
                 'comment': data.get('body') or form.initial.get('body') or '',
-            }))
+            })
 
     if request.method == "POST" and form.is_valid():
         if not thread:
