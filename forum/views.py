@@ -175,11 +175,11 @@ def thread(request, forum, thread=None):
 
     def can_post(forum, user):
         if forum.only_staff_posts:
-            return user.is_authenticated and user.is_staff
+            return user.is_authenticated() and user.is_staff
         if forum.only_upgraders:
-            return user.is_authenticated and (user.is_staff or (hasattr(user, 'userprofile') and
+            return user.is_authenticated() and (user.is_staff or (hasattr(user, 'userprofile') and
                                                                 getattr(user.userprofile, 'is_upgraded', False)))
-        return user.is_authenticated
+        return user.is_authenticated()
 
     if not can_post(f_instance, request.user):
         return HttpResponseForbidden()
@@ -187,7 +187,7 @@ def thread(request, forum, thread=None):
     if not Forum.objects.has_access(f_instance, request.user):
         return HttpResponseForbidden()
 
-    if not request.user.is_authenticated:
+    if not request.user.is_authenticated():
         if instance and instance.comment and instance.comment.user != request.user:
             return HttpResponseForbidden()
 
