@@ -14,7 +14,7 @@ from django.contrib import messages
 from django.contrib.contenttypes.models import ContentType
 from django.conf import settings
 from forum.signals import thread_created
-res
+
 try:
     from django.contrib import comments
 except ImportError:
@@ -38,7 +38,7 @@ class ForumList(ListView):
     def get_context_data(self, **kwargs):
         context = super(ForumList, self).get_context_data(**kwargs)
         user = self.request.user
-        if user.is_authenticated and hasattr(user, 'userprofile') and getattr(user.userprofile, 'is_upgraded', False):
+        if user.is_authenticated() and hasattr(user, 'userprofile') and getattr(user.userprofile, 'is_upgraded', False):
             categories = Category.objects.all()
         else:
             categories = Category.objects.filter(only_upgraders=False)
