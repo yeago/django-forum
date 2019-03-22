@@ -14,7 +14,7 @@ from django.contrib import messages
 from django.contrib.contenttypes.models import ContentType
 from django.conf import settings
 from forum.signals import thread_created
-
+res
 try:
     from django.contrib import comments
 except ImportError:
@@ -182,7 +182,7 @@ def thread(request, forum, thread=None):
         return user.is_authenticated
 
     if not can_post(f_instance, request.user):
-        return HttpResponseForbidden
+        return HttpResponseForbidden()
 
     if not Forum.objects.has_access(f_instance, request.user):
         return HttpResponseForbidden()
