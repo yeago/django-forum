@@ -46,6 +46,8 @@ class ForumList(ListView):
         if self.request.user.is_authenticated():
             context['restricted_forums'] = [i.forum for i in Forum.allowed_users.through.objects.filter(
                 user=self.request.user)]
+        for item in self.get_queryset():
+            context["%s_forum" % item.slug.replace('-', '_')] = item
         return context
 
 
