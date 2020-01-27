@@ -240,7 +240,7 @@ class Thread(models.Model):
     automatically updated with saving a post or viewing the thread.
     """
     featured = models.BooleanField(default=False, blank=True)
-    forum = models.ForeignKey(Forum)
+    forum = models.ForeignKey(Forum, on_delete=models.CASCADE)
     title = models.CharField(_("Title"), max_length=100)
     slug = models.SlugField(_("Slug"), max_length=105)
     sticky = models.BooleanField(_("Sticky?"), blank=True, default=False)
@@ -248,7 +248,7 @@ class Thread(models.Model):
     posts = models.IntegerField(_("Posts"), default=0)
     views = models.IntegerField(_("Views"), default=0)
     comment = models.ForeignKey(
-        'comments_app.TappedComment', null=True, blank=True, related_name="commentthread_set")  # Two way link
+        'comments_app.TappedComment', on_delete=models.CASCADE, null=True, blank=True, related_name="commentthread_set")  # Two way link
     latest_post = models.ForeignKey(
         'comments_app.TappedComment', editable=False, null=True, blank=True,  on_delete=models.SET_NULL)
 
