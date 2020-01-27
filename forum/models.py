@@ -9,7 +9,7 @@ from django.core import validators
 from slugify import SlugifyUniquely
 from django.db import models
 from django.core.cache import caches
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.sites.models import Site
 from django.contrib.contenttypes.models import ContentType
@@ -67,14 +67,14 @@ class Forum(models.Model):
         'auth.User', blank=True, related_name="allowed_forums", help_text="Ignore if non-restricted")
     title = models.CharField(_("Title"), max_length=100)
     slug = models.SlugField(_("Slug"))
-    parent = models.ForeignKey('self', blank=True, null=True, related_name='child')
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, null=True, related_name='child')
     description = models.TextField(_("Description"))
     ordering = models.IntegerField(_("Ordering"), blank=True, null=True)
-    site = models.ForeignKey('sites.Site')
+    site = models.ForeignKey('sites.Site', on_delete=models.PROTECT)
     only_staff_posts = models.BooleanField(default=False)
     only_staff_reads = models.BooleanField(default=False)
     only_upgraders = models.BooleanField(default=False)
-    category = models.ForeignKey(Category, blank=True, null=True)
+    category = models.ForeignKey(Category, on_delete=models.PROTECT, blank=True, null=True)
 
     objects = ForumManager()
 
