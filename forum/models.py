@@ -13,8 +13,8 @@ from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.sites.models import Site
 from django.contrib.contenttypes.models import ContentType
-
 from enuff.managers import EnuffManager
+from django.conf import settings
 try:
     from django.contrib import comments
     from django.contrib.comments.signals import comment_was_posted
@@ -248,9 +248,9 @@ class Thread(models.Model):
     posts = models.IntegerField(_("Posts"), default=0)
     views = models.IntegerField(_("Views"), default=0)
     comment = models.ForeignKey(
-        'comments_app.TappedComment', on_delete=models.CASCADE, null=True, blank=True, related_name="commentthread_set")  # Two way link
+        settings.COMMENTS_MODEL, on_delete=models.CASCADE, null=True, blank=True, related_name="commentthread_set")  # Two way link
     latest_post = models.ForeignKey(
-        'comments_app.TappedComment', editable=False, null=True, blank=True,  on_delete=models.SET_NULL)
+        Comment, editable=False, null=True, blank=True,  on_delete=models.SET_NULL)
 
     banned_users = models.ManyToManyField(
         'auth.User', blank=True, related_name="banned_forums")
