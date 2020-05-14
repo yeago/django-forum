@@ -250,6 +250,9 @@ class Forum(models.Model):
     def __unicode__(self):
         return u'%s' % self.title
 
+    def __str__(self):
+        return u'%s' % self.title
+
     class Meta:
         ordering = ['ordering', 'title']
         verbose_name = _('Forum')
@@ -332,4 +335,7 @@ class Thread(models.Model):
         return reverse('forum_view_thread', args=[self.forum.slug, self.slug])
 
     def __unicode__(self):
+        return u'%s' % self.title.replace('[[', '').replace(']]', '')
+
+    def __str__(self):
         return u'%s' % self.title.replace('[[', '').replace(']]', '')
