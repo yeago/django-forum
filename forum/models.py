@@ -5,6 +5,7 @@ Just about all logic required for smooth updates is in the save()
 methods. A little extra logic is in views.py.
 """
 
+import datetime
 from django.core import validators
 from django.db import models
 from django.template.defaultfilters import slugify
