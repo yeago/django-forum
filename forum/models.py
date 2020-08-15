@@ -6,6 +6,8 @@ methods. A little extra logic is in views.py.
 """
 
 import datetime
+import string
+
 from django.core import validators
 from django.db import models
 from django.template.defaultfilters import slugify
@@ -24,8 +26,6 @@ except ImportError:
     from django_comments.signals import comment_was_posted
 
 from forum.managers import ForumManager
-
-SLUGIFY_MAX_ATTEMPTS = getattr(settings, 'SLUGIFY_MAX_ATTEMPTS', 250)
 
 Comment = comments.get_model()
 
