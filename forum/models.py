@@ -6,6 +6,7 @@ methods. A little extra logic is in views.py.
 """
 
 import datetime
+import random
 
 from django.core import validators
 from django.db import models
