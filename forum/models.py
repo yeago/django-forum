@@ -25,6 +25,7 @@ except ImportError:
 
 from forum.managers import ForumManager
 
+SLUGIFY_MAX_ATTEMPTS = getattr(settings, 'SLUGIFY_MAX_ATTEMPTS', 250)
 
 Comment = comments.get_model()
 
