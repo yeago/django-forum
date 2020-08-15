@@ -29,14 +29,19 @@ SLUGIFY_MAX_ATTEMPTS = getattr(settings, 'SLUGIFY_MAX_ATTEMPTS', 250)
 
 Comment = comments.get_model()
 
-def random_suffix_generator(size=MAX_SUFFIX_LENGTH, chars=SUFFIX_CHARS):
-    """
-    Generates a random string of length determined by size and using the
-    alphabet indicated by chars.
-    """
-    return ''.join(random.choice(chars) for i in range(size))
 
 def SlugifyUniquely(value, model, slugfield="slug"):
+    MAX_SUFFIX_LENGTH = getattr(settings, 'MAX_SUFFIX_LENGTH', 3)
+    SUFFIX_CHARS = getattr(settings, 'SUFFIX_CHARS', string.ascii_letters)
+    SLUGIFY_MAX_ATTEMPTS = getattr(settings, 'SLUGIFY_MAX_ATTEMPTS', 250)
+
+    def random_suffix_generator(size=MAX_SUFFIX_LENGTH, chars=SUFFIX_CHARS):
+        """
+        Generates a random string of length determined by size and using the
+        alphabet indicated by chars.
+        """
+        return ''.join(random.choice(chars) for i in range(size))
+
     """Returns a slug on a name which is unique within a model's table
 
     This code suffers a race condition between when a unique
