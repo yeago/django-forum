@@ -6,7 +6,6 @@ methods. A little extra logic is in views.py.
 """
 
 import datetime
-import string
 
 from django.core import validators
 from django.db import models
@@ -32,7 +31,7 @@ Comment = comments.get_model()
 
 def SlugifyUniquely(value, model, slugfield="slug"):
     MAX_SUFFIX_LENGTH = getattr(settings, 'MAX_SUFFIX_LENGTH', 3)
-    SUFFIX_CHARS = getattr(settings, 'SUFFIX_CHARS', string.ascii_letters)
+    SUFFIX_CHARS = getattr(settings, 'SUFFIX_CHARS', 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
     SLUGIFY_MAX_ATTEMPTS = getattr(settings, 'SLUGIFY_MAX_ATTEMPTS', 250)
 
     def random_suffix_generator(size=MAX_SUFFIX_LENGTH, chars=SUFFIX_CHARS):
