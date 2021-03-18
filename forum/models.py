@@ -5,16 +5,19 @@ Just about all logic required for smooth updates is in the save()
 methods. A little extra logic is in views.py.
 """
 
+import datetime
+import random
+
 from django.core import validators
 from django.db import models
 from django.template.defaultfilters import slugify
 from django.core.cache import caches
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.sites.models import Site
 from django.contrib.contenttypes.models import ContentType
-
 from enuff.managers import EnuffManager
+from django.conf import settings
 try:
     from django.contrib import comments
     from django.contrib.comments.signals import comment_was_posted
@@ -24,11 +27,21 @@ except ImportError:
 
 from forum.managers import ForumManager
 
-
 Comment = comments.get_model()
 
 
 def SlugifyUniquely(value, model, slugfield="slug"):
+    MAX_SUFFIX_LENGTH = getattr(settings, 'MAX_SUFFIX_LENGTH', 3)
+    SUFFIX_CHARS = getattr(settings, 'SUFFIX_CHARS', 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
+    SLUGIFY_MAX_ATTEMPTS = getattr(settings, 'SLUGIFY_MAX_ATTEMPTS', 250)
+
+    def random_suffix_generator(size=MAX_SUFFIX_LENGTH, chars=SUFFIX_CHARS):
+        """
+        Generates a random string of length determined by size and using the
+        alphabet indicated by chars.
+        """
+        return ''.join(random.choice(chars) for i in range(size))
+
     """Returns a slug on a name which is unique within a model's table
 
     This code suffers a race condition between when a unique
@@ -125,14 +138,14 @@ class Forum(models.Model):
         'auth.User', blank=True, related_name="allowed_forums", help_text="Ignore if non-restricted")
     title = models.CharField(_("Title"), max_length=100)
     slug = models.SlugField(_("Slug"))
-    parent = models.ForeignKey('self', blank=True, null=True, related_name='child')
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, null=True, related_name='child')
     description = models.TextField(_("Description"))
     ordering = models.IntegerField(_("Ordering"), blank=True, null=True)
-    site = models.ForeignKey('sites.Site')
+    site = models.ForeignKey('sites.Site', on_delete=models.PROTECT)
     only_staff_posts = models.BooleanField(default=False)
     only_staff_reads = models.BooleanField(default=False)
     only_upgraders = models.BooleanField(default=False)
-    category = models.ForeignKey(Category, blank=True, null=True)
+    category = models.ForeignKey(Category, on_delete=models.PROTECT, blank=True, null=True)
 
     objects = ForumManager()
 
@@ -250,6 +263,9 @@ class Forum(models.Model):
     def __unicode__(self):
         return u'%s' % self.title
 
+    def __str__(self):
+        return u'%s' % self.title
+
     class Meta:
         ordering = ['ordering', 'title']
         verbose_name = _('Forum')
@@ -298,7 +314,7 @@ class Thread(models.Model):
     automatically updated with saving a post or viewing the thread.
     """
     featured = models.BooleanField(default=False, blank=True)
-    forum = models.ForeignKey(Forum)
+    forum = models.ForeignKey(Forum, on_delete=models.CASCADE)
     title = models.CharField(_("Title"), max_length=100)
     slug = models.SlugField(_("Slug"), max_length=105)
     sticky = models.BooleanField(_("Sticky?"), blank=True, default=False)
@@ -306,7 +322,7 @@ class Thread(models.Model):
     posts = models.IntegerField(_("Posts"), default=0)
     views = models.IntegerField(_("Views"), default=0)
     comment = models.ForeignKey(
-        Comment, null=True, blank=True, related_name="commentthread_set")  # Two way link
+        settings.COMMENTS_MODEL, on_delete=models.CASCADE, null=True, blank=True, related_name="commentthread_set")  # Two way link
     latest_post = models.ForeignKey(
         Comment, editable=False, null=True, blank=True,  on_delete=models.SET_NULL)
 
@@ -332,4 +348,7 @@ class Thread(models.Model):
         return reverse('forum_view_thread', args=[self.forum.slug, self.slug])
 
     def __unicode__(self):
+        return u'%s' % self.title.replace('[[', '').replace(']]', '')
+
+    def __str__(self):
         return u'%s' % self.title.replace('[[', '').replace(']]', '')

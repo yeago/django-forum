@@ -38,12 +38,12 @@ class ForumList(ListView):
     def get_context_data(self, **kwargs):
         context = super(ForumList, self).get_context_data(**kwargs)
         user = self.request.user
-        if user.is_authenticated() and hasattr(user, 'userprofile') and getattr(user.userprofile, 'is_upgraded', False):
+        if user.is_authenticated and hasattr(user, 'userprofile') and getattr(user.userprofile, 'is_upgraded', False):
             categories = Category.objects.all()
         else:
             categories = Category.objects.filter(only_upgraders=False)
         context['categories'] = categories
-        if self.request.user.is_authenticated():
+        if self.request.user.is_authenticated:
             context['restricted_forums'] = [i.forum for i in Forum.allowed_users.through.objects.filter(
                 user=self.request.user)]
         for item in self.get_queryset():
@@ -66,7 +66,7 @@ class ThreadList(ListView):
             self.forum = Forum.objects.for_user(
                 self.request.user).select_related().get(slug=self.kwargs.get('slug'), site=settings.SITE_ID)
             if self.forum.restricted:
-                if not self.request.user.is_authenticated() or self.request.user not in self.forum.allowed_users.all():
+                if not self.request.user.is_authenticated or self.request.user not in self.forum.allowed_users.all():
                     raise Http404
         except Forum.DoesNotExist:
             raise Http404
@@ -78,7 +78,7 @@ class ThreadList(ListView):
         form = ThreadForm(user=self.request.user)
 
         cache = get_forum_cache()
-        if self.request.user.is_authenticated() and cache:
+        if self.request.user.is_authenticated and cache:
             user = self.request.user
             key = make_cache_forum_key(user, self.forum.slug, settings.SITE_ID)
             try:
@@ -142,7 +142,7 @@ class PostList(ListView):
             initial = {'subscribe': False}
 
         form = None
-        if self.request.user.is_authenticated() and self.request.user not in self.object.banned_users.all():
+        if self.request.user.is_authenticated and self.request.user not in self.object.banned_users.all():
             form = ReplyForm(initial=initial)
 
         context.update({
@@ -177,11 +177,11 @@ def thread(request, forum, thread=None):
 
     def can_post(forum, user):
         if forum.only_staff_posts:
-            return user.is_authenticated() and user.is_staff
+            return user.is_authenticated and user.is_staff
         if forum.only_upgraders:
-            return user.is_authenticated() and (user.is_staff or (hasattr(user, 'userprofile') and
+            return user.is_authenticated and (user.is_staff or (hasattr(user, 'userprofile') and
                                                                 getattr(user.userprofile, 'is_upgraded', False)))
-        return user.is_authenticated()
+        return user.is_authenticated
 
     if not can_post(f_instance, request.user):
         return HttpResponseForbidden()
@@ -189,7 +189,7 @@ def thread(request, forum, thread=None):
     if not Forum.objects.has_access(f_instance, request.user):
         return HttpResponseForbidden()
 
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         if instance and instance.comment and instance.comment.user != request.user:
             return HttpResponseForbidden()
 
