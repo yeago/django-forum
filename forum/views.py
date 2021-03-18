@@ -6,7 +6,7 @@ and posts, adding new threads, and adding replies.
 import time
 from datetime import datetime, timedelta
 from django.utils.timesince import timeuntil
-from django.shortcuts import get_object_or_404, render_to_response, render
+from django.shortcuts import get_object_or_404, render
 from django.http import Http404, HttpResponseRedirect, HttpResponseForbidden
 from django.template import RequestContext
 from django.views.generic.list import ListView
