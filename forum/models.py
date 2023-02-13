@@ -13,7 +13,7 @@ from django.db import models
 from django.template.defaultfilters import slugify
 from django.core.cache import caches
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.contrib.sites.models import Site
 from django.contrib.contenttypes.models import ContentType
 from enuff.managers import EnuffManager
