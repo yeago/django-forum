@@ -5,7 +5,7 @@ from django.utils.feedgenerator import Atom1Feed
 from django.contrib.sites.models import Site
 from django.core.exceptions import ObjectDoesNotExist
 from django.urls import reverse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from forum.models import Forum, Thread
 
